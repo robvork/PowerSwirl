@@ -1,0 +1,60 @@
+-- ================================
+-- Create User-defined Data Type
+-- ================================
+USE PowerSwirl  
+GO
+
+IF OBJECT_ID('dbo.course', 'U') IS NOT NULL
+	DROP TABLE dbo.course; 
+
+IF OBJECT_ID('dbo.course', 'U') IS NOT NULL
+	DROP TABLE dbo.course; 
+
+IF TYPE_ID('dbo.step') IS NOT NULL
+	DROP TYPE dbo.step;
+GO
+
+CREATE TYPE dbo.STEP
+FROM INT
+NOT NULL;
+
+IF TYPE_ID('dbo.SID') IS NOT NULL
+	DROP TYPE dbo.SID;
+GO
+
+CREATE TYPE dbo.SID
+FROM INT
+NOT NULL;
+
+IF TYPE_ID('dbo.FLAG') IS NOT NULL
+	DROP TYPE dbo.FLAG;
+GO
+
+CREATE TYPE dbo.FLAG
+FROM BIT
+NOT NULL;
+
+
+IF TYPE_ID('dbo.PROMPT') IS NOT NULL
+	DROP TYPE dbo.PROMPT;
+GO
+
+CREATE TYPE dbo.PROMPT
+FROM NVARCHAR(1000)
+NOT NULL;
+
+IF TYPE_ID('dbo.MC_SOLN') IS NOT NULL
+	DROP TYPE dbo.MC_SOLN;
+GO
+
+CREATE TYPE dbo.MC_SOLN
+FROM NCHAR(1)
+NOT NULL;
+
+IF TYPE_ID('dbo.ID') IS NOT NULL
+	DROP TYPE dbo.ID;
+GO
+
+CREATE TYPE dbo.ID
+FROM NVARCHAR(1000)
+NOT NULL;
