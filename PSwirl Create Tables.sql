@@ -107,14 +107,15 @@ FROM dbo.course_dtl AS C
 
 INSERT INTO dbo.lesson_hdr
 SELECT course_sid, ROW_NUMBER() OVER (PARTITION BY course_sid ORDER BY course_sid),
+		 'Course ' + CONVERT(VARCHAR(5), course_sid)) +
 		 'Lesson ' + CONVERT(VARCHAR(5), ROW_NUMBER() OVER (PARTITION BY course_sid ORDER BY course_sid))
 FROM dbo.course_dtl;
 
 
-SELECT * FROM dbo.course_hdr;
-SELECT * FROM dbo.course_dtl;
-SELECT * FROM dbo.lesson_hdr;
-SELECT * FROM dbo.lesson_dtl;
+--SELECT * FROM dbo.course_hdr;
+--SELECT * FROM dbo.course_dtl;
+--SELECT * FROM dbo.lesson_hdr;
+--SELECT * FROM dbo.lesson_dtl;
 
 
 --ALTER TABLE dbo.course
@@ -122,3 +123,6 @@ SELECT * FROM dbo.lesson_dtl;
 --FOREIGN KEY   (course_sid, lesson_sid, step_num) 
 --	REFERENCES
 --	dbo.lesson(course_sid, lesson_sid, step_num)
+
+--SELECT * FROM dbo.lesson_dtl
+--WHERE course_sid = 4 AND lesson_sid = 2;
