@@ -1,8 +1,8 @@
-course_id,lesson_id,
-existing or new course_id ,new lesson_id,
-step_prompt,requires_input,solution
-The first prompt text is here,0,a
-Here is the second prompt text,1,b
-The third,0,c
-Fourth,0,d
-And Fifth,1,a
+course_id,lesson_id,,,,,
+existing or new course_id ,new lesson_id,,,,,
+step_prompt,requires_input_flag,force_pause_flag,execute_code_flag,store_var_flag,solution,variable
+The first prompt text is here,0,a,,,,
+Here is the second prompt text,1,b,,,,
+The third,0,c,,,,
+Fourth,0,d,,,,
+And Fifth,1,a,,,,

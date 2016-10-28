@@ -4,11 +4,18 @@
 USE PowerSwirl  
 GO
 
-IF OBJECT_ID('dbo.course', 'U') IS NOT NULL
-	DROP TABLE dbo.course; 
+IF OBJECT_ID('dbo.course_hdr', 'U') IS NOT NULL
+	DROP TABLE dbo.course_hdr; 
 
-IF OBJECT_ID('dbo.course', 'U') IS NOT NULL
-	DROP TABLE dbo.course; 
+IF OBJECT_ID('dbo.course_dtl', 'U') IS NOT NULL
+	DROP TABLE dbo.course_dtl; 
+
+
+IF OBJECT_ID('dbo.lesson_hdr', 'U') IS NOT NULL
+	DROP TABLE dbo.lesson_hdr; 
+
+IF OBJECT_ID('dbo.lesson_dtl', 'U') IS NOT NULL
+	DROP TABLE dbo.lesson_dtl;
 
 IF TYPE_ID('dbo.step') IS NOT NULL
 	DROP TYPE dbo.step;
@@ -56,5 +63,13 @@ IF TYPE_ID('dbo.ID') IS NOT NULL
 GO
 
 CREATE TYPE dbo.ID
-FROM NVARCHAR(1000)
+FROM NVARCHAR(200)
+NOT NULL;
+
+IF TYPE_ID('dbo.variable') IS NOT NULL
+	DROP TYPE dbo.variable;
+GO
+
+CREATE TYPE dbo.variable 
+FROM NVARCHAR(100)
 NOT NULL;

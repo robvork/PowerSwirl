@@ -1,4 +1,5 @@
-function pswirl
+
+function Start-PowerSwirl
 {
     [CmdletBinding()]
 
@@ -131,20 +132,251 @@ function pswirl
                 $continueLessonChoice = $false 
                 $returnToCourses = $false
                 $choice_id = ($lesson_hdr | Where-Object {$_.choice -eq $choice}).lesson_id
+                $lesson_sid = ($lesson_hdr | Where-Object {$_.choice -eq $choice}).lesson_sid
                 Write-Host "Lesson chosen: $choice_id`n" -ForegroundColor Green                
             }
         }
         while($continueLessonChoice)
 
     } while($returnToCourses)
-
-    # When PSwirl reaches this point, the user has chosen a lesson and so we can begin the teaching!
-
     
+    Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid
 
 }
 
-function Import-Lesson
+function Start-PowerSwirlLesson
+{
+    [CmdletBinding()]
+    param
+    (
+        [ValidateNotNullOrEmpty()]
+        [int] $course_sid,
+
+        [ValidateNotNullOrEmpty()]
+        [int] $lesson_sid,
+
+        [ValidateNotNullOrEmpty()]
+        [int] $step_num = 0,
+
+        [switch] $disableForcePause
+    )
+     
+
+    #Remove any lesson-in progress variables from the global scope
+    Remove-Variable -Force -Scope "global" -Name "course_sid","lesson_sid","step_num" -ErrorAction SilentlyContinue
+
+    $server_instance = "ROBERTG\SQL14"
+    $database = "PowerSwirl"
+    $SQLCMD_object_type = "PSObject"
+
+
+    $query = 
+@"
+                 SELECT step_num, step_prompt AS prompt, lesson_sid, requires_input_flag, execute_code_flag, store_var_flag, variable, solution
+                 FROM dbo.lesson_dtl
+                 WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
+"@
+   $lesson_dtl = Invoke-SQLCMD2 -ServerInstance $server_instance `
+                                     -Database $database `
+                                     -AS $SQLCMD_object_Type `
+                                     -Query $query`
+    $query = 
+@"
+                 SELECT step_num, step_prompt AS prompt, requires_input_flag, force_pause_flag, execute_code_flag, store_var_flag, variable, solution
+                 FROM dbo.lesson_dtl
+                 WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
+"@
+   $lesson_dtl = Invoke-SQLCMD2 -ServerInstance $server_instance `
+                                     -Database $database `
+                                     -AS $SQLCMD_object_Type `
+                                     -Query $query`
+     $query = 
+@"
+                 SELECT num_steps
+                 FROM dbo.course_dtl
+                 WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
+"@  
+     $num_steps = Invoke-SQLCMD2 -ServerInstance $server_instance `
+                                 -Database $database `
+                                 -AS $SQLCMD_object_type `
+                                 -Query $query `
+                | Select-Object -ExpandProperty num_steps
+    
+    $query =
+@"
+                 SELECT course_id, lesson_id 
+                 FROM dbo.course_hdr AS CH
+                    INNER JOIN dbo.lesson_hdr AS LH
+                        ON CH.course_sid = LH.course_sid
+                 WHERE CH.course_sid = $course_sid AND LH.lesson_sid = $lesson_sid
+"@
+
+    $course_lesson_ids = Invoke-SQLCMD2 -ServerInstance $server_instance `
+                                        -Database $database `
+                                        -As $SQLCMD_object_type `
+                                        -Query $query 
+    $course_id = $course_lesson_ids.course_id
+    $lesson_id = $course_lesson_ids.lesson_id
+    Write-Host "Loading course $course_id, lesson $lesson_id" -ForegroundColor Green 
+
+    function codeObjectsEqual
+    {
+        param
+        (
+            $code1,
+            $code2
+        )
+
+        Try
+        {
+            $diff = (Compare-Object (Invoke-Expression $code1) (Invoke-Expression $code2) -ErrorAction Stop | Select-Object -ExpandProperty SideIndicator) 
+            return ($diff.Count -eq 0)
+        }
+        Catch
+        {
+            return $false 
+        }
+    }
+
+
+    for($step = $step_num; $step -lt $num_steps; $step += 1)
+    {
+        $curr = $lesson_dtl[$step]
+
+        Write-Output $curr.prompt
+
+        if($curr.store_var_flag)
+        {
+            if($curr.execute_code_flag)
+            {
+                Set-Variable -name $curr.variable -Value (Invoke-Expression $curr.solution) -Scope "global"
+            }
+            else
+            {
+                Set-Variable -name $curr.variable -Value $curr.solution -Scope "global"
+            }
+                
+        }
+
+        if($curr.force_pause_flag -and -not $disableForcePause)
+        {
+            $pauseLesson = $true
+            break
+        }
+
+
+        if($curr.requires_input_flag)
+        {
+             
+             $solution = $curr.solution
+             
+             Write-Host "Type 'play' to enter code mode, or attempt an answer to the question"        
+
+           
+             #Write-Output "$solution"
+             #Write-Output (Invoke-Expression "$solution")
+             #Write-Output "..."
+             #Read-Host | Out-Null
+            $user_correct = $false 
+            do
+            {
+                $input = Read-Host "`n"
+
+                if($input -eq "")
+                {
+                    continue
+                }
+                elseif($input -eq "play")
+                {
+                    $pauseLesson = $true
+                    break
+                }
+
+                $user_correct = codeObjectsEqual -code1 $input -code2 $solution 
+                 
+                if(!$user_correct)
+                {
+                    Write-Host "Not quite. Try again.`n" -ForegroundColor DarkGreen
+                }
+                else
+                {
+                    Write-Host "Correct!`n" -ForegroundColor Green 
+                    $user_correct = $true 
+                }
+            }
+            while(!$user_correct)
+
+            if($pauseLesson) 
+            {
+                break
+            }
+           
+   
+        }
+        else
+        {
+             $input = Read-Host ":....."
+             Write-Output ""
+             $input = $input.ToLower()
+             if($input -eq "play")
+             {
+                break
+             }
+        } 
+        $input = ""
+    }
+    
+
+    if($pauseLesson)
+    {
+        $global_scope = "global"
+        Set-Variable -Name course_sid -Value $course_sid -Scope $global_scope -Force -Option ReadOnly
+        Set-Variable -Name lesson_sid -Value $lesson_sid -Scope $global_scope -Force -Option ReadOnly
+        Set-Variable -Name step_num -Value $step -Scope $global_scope -Force -Option ReadOnly
+        Write-Host "Pausing PowerSwirl lesson, enabling code mode. Explore on your own and type 'nxt' to continue your lesson when you're ready." -ForegroundColor Green 
+        return 
+    }
+
+     
+}
+
+function nxt
+{
+    [CmdletBinding()]
+    param
+    (
+    )
+
+    Try
+    {
+        $parent_scope = 2
+        $inputs = Get-Variable -Name "course_sid","lesson_sid","step_num" -Scope $parent_scope         
+        $input_count = $inputs | Measure-Object | Select -ExpandProperty Count
+        if($input_count -ne 3)
+        {
+            Remove-Variable -Name "inputs","input_count","parent_scope"
+            return
+        }
+
+        $bad_vals = $inputs |
+                Where-Object {$_.Value -eq $null -or $_.Value -isnot [int]}
+        if($bad_vals -ne $null)
+        {
+            throw "All inputs must be non-null ints."
+        }
+    
+        Write-Host "Resuming lesson..." -ForegroundColor Green 
+
+        Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid -step_num $step_num -disableForcePause
+    }
+    Catch
+    {
+        Write-Host "PowerSwirl resume failed: $($_.Exception.Message)" -ForegroundColor Red 
+    }
+
+}
+
+function Import-PowerSwirlLesson
 {
     <#
         .SYNOPSIS
@@ -173,55 +405,108 @@ function Import-Lesson
         [Parameter(ValueFromPipeline=$true)]
         [string]
         [alias("Source", "LessonFile", "File")]
-        $Path
+        $Path,
+
+        [switch]
+        $Force 
     )
 
+    Try
+    {
+
+    Write-Verbose "Checking that input file exists"
     if(-not (test-path $path))
     {
-        Write-Host "Specified file does not exist. Check your path and try again" -ForegroundColor Red
-        return
+        throw "Specified file does not exist. Check your path and try again" 
     }
 
+    Write-Verbose "Checking that input file is a csv file"
     if(-not ((split-path $path -leaf) -match ".*csv"))
     {
-        Write-Host "Specified file is not a csv file. Please use a csv file" -ForegroundColor Red
-        return
+        throw "Specified file is not a csv file. Please use a csv file" 
     }
 
+    Write-Verbose "Checking that input file has the minimal amount of content"
     $total_line_count = (gc $Path | mo -line).Lines
     if($total_line_count -lt 4)
     {
-        Write-Host "For the lesson to have at least one prompt, the csv file must contain at least 4 lines" -ForegroundColor Red
-        return
+        throw "For the lesson to have at least one prompt, the csv file must contain at least 4 lines" 
     }
 
-    $firstline = (gc -path $Path) | Select -first 1
-    $thirdline = (gc -path $Path) | Select -first 1 -Skip 2
-
-    if($firstline.trimend(",") -ne "course_id,lesson_id")
+    
+    Write-Verbose "Checking that the first and third lines of the file contain the proper field names"
+    $lessonHeader1 = (gc -path $Path) | Select -first 1 | ForEach-Object {$_.TrimEnd(",")}
+    $lessonHeader2 = (gc -path $Path) | Select -first 1 -Skip 2 | ForEach-Object {$_.TrimEnd(",")}
+    $templateHeader1 = Get-Content -Path .\import_template.csv | Select-Object -First 1 -Skip 0 | ForEach-Object {$_.TrimEnd(",")}
+    $templateHeader2 = Get-Content -Path .\import_template.csv | Select-Object -First 1 -Skip 2 | ForEach-Object {$_.TrimEnd(",")}
+    if($lessonHeader1 -ne $templateHeader1)
     {
-        Write-Host "The first line must have two entries: course_id, lesson_id" -ForegroundColor Red
-        return
+        throw "The first line must match the following exactly: $templateHeader1" 
     }
-    if($thirdline -ne "step_prompt,requires_input,solution")
+    if($lessonHeader2 -ne $templateHeader2)
     {
-        Write-Host "The third line must have three entries: step_prompt,requires_input,solution" -ForegroundColor Red
-        return
+        throw "The third line must match the following exactly: $templateHeader2" 
     }
-
+    
     $serverInstance = "ROBERTG\SQL14"
     $database = "PowerSwirl"
 
+
+    Write-Verbose "Loading hdr and dtl sections from file"
     $section1 = (Get-Content -Path $Path -Head 2) | ConvertFrom-CSV 
     $section2 = (Get-Content -Path $Path -Tail ($total_line_count - 2)) | ConvertFrom-CSV 
+
+
+    Write-Verbose "Replacing empty values with 0 or NULL wherever appropriate"
+
+    function fieldIsEmpty
+    {
+        param
+        (
+            [string] $field
+        )
+
+        return $field -eq "" -or $field -eq $null
+    }
+
+    foreach($step in $section2)
+    {
+        if(fieldIsEmpty($step.requires_input_flag))
+        {
+            $step.requires_input_flag = "0"
+        }
+        if(fieldIsEmpty($step.force_pause_flag))
+        {
+            $step.force_pause_flag = "0"
+        }
+        if(fieldIsEmpty($step.execute_code_flag))
+        {
+            $step.execute_code_flag = "0"
+        }
+        if(fieldIsEmpty($step.store_var_flag))
+        {
+            $step.store_var_flag = "0"
+        }
+        if(fieldIsEmpty($step.solution))
+        {
+            $step.solution = $null
+        }
+        if(fieldIsEmpty($step.variable))
+        {
+           $step.variable = $null
+        }
+
+    
+    } 
 
     $course_id = $section1.course_id
     $lesson_id = $section1.lesson_id
     $num_steps = ($section2 | mo).count
     $step_num = 1
-    $lesson_in_progress = 0
-    $lesson_completed = 0
+    $lesson_in_progress_flag = 0
+    $lesson_completed_flag = 0
 
+    Write-Verbose "Finding existing course_sid or creating new course_sid for this new lesson"
     $query = 
 @"
               SELECT ISNULL(
@@ -242,6 +527,7 @@ function Import-Lesson
                                  -Database $database  `
                                  -Query $query | Select-Object -ExpandProperty course_sid
 
+    Write-Verbose "Checking if lesson with chosen name already exists. Error out unless if so unless -Force used"
     $query =
 @"
                IF EXISTS(SELECT * 
@@ -259,22 +545,41 @@ function Import-Lesson
                                         Select-Object -ExpandProperty lesson_id_exists
     if($lesson_id_exists -eq 1)
     {
-        Write-Host "Lesson with passed in name already exists. Choose a unique lesson name" -ForegroundColor Red
-        return
-    }
+        if($Force)
+        {
+            $query =
+@"
+              DECLARE @li_lesson_sid SID = (SELECT lesson_sid 
+                                            FROM dbo.lesson_hdr 
+                                            WHERE lesson_id = '$lesson_id'
+                                                AND course_sid = $course_sid);
+              DELETE FROM dbo.lesson_dtl
+              WHERE lesson_sid = @li_lesson_sid; 
 
-    $query =
+              SELECT @li_lesson_sid AS lesson_sid
+"@            
+        }
+        else
+        {
+            throw "Lesson with passed in name already exists. Choose a unique lesson name or use the -Force switch to reimport lesson" 
+        }
+    }
+    else
+    {
+            $query =
 @"
                SELECT ISNULL(MAX(lesson_sid), 0) + 1 AS lesson_sid
                FROM dbo.lesson_hdr
                WHERE course_sid = $course_sid;
 "@
-
+    }
+    Write-Verbose "Determining lesson sid of current lesson"
     $lesson_sid = Invoke-SQLCMD2 -ServerInstance $serverInstance `
                                  -Database $database `
                                  -Query $query | Select-Object -ExpandProperty lesson_sid
 
     #If course is new, insert entry into course_hdr
+    Write-Verbose "Checking whether course is new. Inserting new course_hdr row if so. Otherwise, doing nothing."
     $query =
 @"
              IF NOT EXISTS
@@ -286,27 +591,34 @@ function Import-Lesson
                 INSERT INTO dbo.course_hdr(course_sid, course_id)
                 VALUES($course_sid, '$course_id');
 "@
+    
     Invoke-SQLCMD2 -ServerInstance $serverInstance `
                    -Database $database `
                    -Query $query
-
-    #Insert entry into lesson_hdr
+    
+    #Insert entry into lesson_hdr if it's new
+    Write-Verbose "Checking whether this lesson already exists and this execution is revising it. Inserting new lesson_hdr row if so. `
+                   Otherwise, doing nothing."
     $query =
 @"
-             INSERT INTO dbo.lesson_hdr(course_sid, lesson_sid, lesson_id)
-             VALUES($course_sid, $lesson_sid, '$lesson_id');
+             IF NOT EXISTS(SELECT * FROM dbo.lesson_hdr WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid)
+                 INSERT INTO dbo.lesson_hdr(course_sid, lesson_sid, lesson_id)
+                 VALUES($course_sid, $lesson_sid, '$lesson_id');
 
 "@
-    
     Invoke-SQLCMD2 -ServerInstance $serverInstance `
                    -Database $database `
                    -Query $query
 
     #Insert summary information into course_dtl
+    Write-Verbose "If lesson already exists, deleting metadata associated with it and generating new metadata"
     $query =
 @"
-              INSERT INTO dbo.course_dtl(course_sid, lesson_sid, step_num, num_steps, lesson_in_progress, lesson_completed)
-              VALUES($course_sid, $lesson_sid, $step_num, $num_steps, $lesson_in_progress, $lesson_completed)
+              IF EXISTS(SELECT * FROM dbo.course_dtl WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid)
+                DELETE FROM dbo.course_dtl WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
+
+              INSERT INTO dbo.course_dtl(course_sid, lesson_sid, step_num, num_steps, lesson_in_progress_flag, lesson_completed_flag)
+              VALUES($course_sid, $lesson_sid, $step_num, $num_steps, $lesson_in_progress_flag, $lesson_completed_flag)
 "@
 
     Invoke-SQLCMD2 -ServerInstance $serverInstance `
@@ -314,23 +626,66 @@ function Import-Lesson
                    -Query $query
 
     #Insert individual steps into lesson_dtl
+    Write-Verbose "Inserting individual lesson steps into dbo.lesson_dtl"
     $step_num = 1
     foreach($step in $section2)
     {
-        $step_prompt = $step.step_prompt.toString().replace("'", "''")
-        $requires_input = $step.requires_input.toString()
-        $solution = $step.solution.toString()
+         
+        $step_prompt = "'$($step.step_prompt.toString().replace("'", "''"))'"
+        $requires_input = $step.requires_input_flag
+        $force_pause = $step.force_pause_flag 
+        $execute_code = $step.execute_code_flag
+        $store_var = $step.store_var_flag
+        
+        # NULL without single quotes is interpreted as a NULL value
+        if($step.variable -eq $null)
+        {
+            $var = "NULL"
+        }
+        #If the var is not a PowerShell null, it has some non-empty string as its value and we need to use single quotes
+        else 
+        {
+            $var = "'$($step.variable)'"
+        }
+        
+        # NULL without single quotes is interpreted as a NULL value in SQL Server
+        if($step.solution -eq $null)
+        {
+            $solution = "NULL"
+        }
+        #If the solution is not a PowerShell null, it has some non-empty string as its value and we need to use single quotes
+        else
+        {
+            $solution = "'$($step.solution)'"
+        }
         
         $query =
 @"
-              INSERT INTO dbo.lesson_dtl(course_sid, lesson_sid, step_num, step_prompt, requires_input, solution)
-              VALUES($course_sid, $lesson_sid, $step_num, '$step_prompt', $requires_input, $solution)
+              INSERT INTO dbo.lesson_dtl(course_sid, lesson_sid, step_num, step_prompt, requires_input_flag, force_pause_flag, execute_code_flag, store_var_flag, solution, variable)
+              VALUES($course_sid, $lesson_sid, $step_num, $step_prompt, $requires_input, $force_pause, $execute_code, $store_var, $solution, $var)
 "@
-            
+           
+        Write-Verbose $query 
         Invoke-SQLCMD2 -ServerInstance $serverInstance `
                        -Database $database `
                        -Query $query
         $step_num += 1 
-    }
     
+    }
+        
+    }
+    catch
+    {
+        Write-Host "Error encountered: $($_.Exception.Message)" -ForegroundColor Red 
+    }
 }
+
+Set-Alias -Name "psw" -Value "Start-PowerSwirl"
+Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
+Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
+Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
+
+Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
+Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"
+Export-ModuleMember -Function nxt
+Export-ModuleMember -Function Import-PowerSwirlLesson -Alias "impswl"

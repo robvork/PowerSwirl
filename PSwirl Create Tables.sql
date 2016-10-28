@@ -26,8 +26,8 @@ CREATE TABLE dbo.course_dtl
 	lesson_sid SID NOT NULL,
 	step_num STEP NOT NULL DEFAULT(1),
 	num_steps STEP NOT NULL,
-	lesson_in_progress FLAG NOT NULL,
-	lesson_completed FLAG NOT NULL
+	lesson_in_progress_flag FLAG NOT NULL,
+	lesson_completed_flag FLAG NOT NULL
 	PRIMARY KEY(course_sid, lesson_sid)
 );
 
@@ -52,8 +52,11 @@ CREATE TABLE dbo.lesson_dtl
 	lesson_sid SID NOT NULL,
 	step_num STEP NOT NULL,
 	step_prompt PROMPT NOT NULL,
-	requires_input FLAG NOT NULL,
-	solution VARCHAR(100) NULL,
+	requires_input_flag FLAG NOT NULL,
+	execute_code_flag FLAG NOT NULL,
+	store_var_flag FLAG NOT NULL,
+	variable VARIABLE NULL,
+	solution NVARCHAR(500) NULL,
 	PRIMARY KEY(course_sid, lesson_sid, step_num)
 );
 
@@ -81,7 +84,12 @@ FROM dbo.Nums AS nums
 WHERE nums.n <= 4;
 
 INSERT INTO dbo.course_dtl
-	   (course_sid, lesson_sid, step_num, num_steps, lesson_in_progress, lesson_completed)
+	   (course_sid, 
+	    lesson_sid, 
+		step_num, 
+		num_steps, 
+		lesson_in_progress_flag, 
+		lesson_completed_flag)
 VALUES (1, 1, 1, 2, 0, 0), 
 	   (2, 1, 1, 6, 0, 0), 
 	   (3, 1, 3, 7, 1, 0),
@@ -91,12 +99,22 @@ VALUES (1, 1, 1, 2, 0, 0),
 
 
 INSERT INTO dbo.lesson_dtl
-		(course_sid, lesson_sid, step_num, step_prompt, requires_input, solution)
-SELECT C.course_sid, C.lesson_sid, nums.n,
-		 'C' + CONVERT(VARCHAR(5), C.course_sid)
-	   + ' L' + CONVERT(VARCHAR(5), C.lesson_sid) 
-	   + ' S' + CONVERT(VARCHAR(5), nums.n) ,
-	   0, NULL
+		(
+			course_sid,  lesson_sid, step_num, step_prompt, 
+			requires_input_flag, execute_code_flag, store_var_flag, 
+			solution, variable
+		)
+SELECT C.course_sid, 
+	   C.lesson_sid, 
+	   nums.n,
+		'C' + CONVERT(VARCHAR(5), C.course_sid)
+		+ ' L' + CONVERT(VARCHAR(5), C.lesson_sid) 
+		+ ' S' + CONVERT(VARCHAR(5), nums.n) ,
+		0,
+		0,
+		0,
+		NULL,
+		NULL
 FROM dbo.course_dtl AS C
 	CROSS APPLY 
 		(
@@ -105,17 +123,17 @@ FROM dbo.course_dtl AS C
 			WHERE n <= C.num_steps
 		) AS nums
 
-INSERT INTO dbo.lesson_hdr
+INSERT INTO dbo.lesson_hdr(course_sid, lesson_sid, lesson_id)
 SELECT course_sid, ROW_NUMBER() OVER (PARTITION BY course_sid ORDER BY course_sid),
-		 'Course ' + CONVERT(VARCHAR(5), course_sid)) +
-		 'Lesson ' + CONVERT(VARCHAR(5), ROW_NUMBER() OVER (PARTITION BY course_sid ORDER BY course_sid))
+		 'Course ' + CONVERT(VARCHAR(5), course_sid) +
+		 ' Lesson ' + CONVERT(VARCHAR(5), ROW_NUMBER() OVER (PARTITION BY course_sid ORDER BY course_sid))
 FROM dbo.course_dtl;
 
 
---SELECT * FROM dbo.course_hdr;
---SELECT * FROM dbo.course_dtl;
---SELECT * FROM dbo.lesson_hdr;
---SELECT * FROM dbo.lesson_dtl;
+SELECT * FROM dbo.course_hdr;
+SELECT * FROM dbo.course_dtl;
+SELECT * FROM dbo.lesson_hdr;
+SELECT * FROM dbo.lesson_dtl;
 
 
 --ALTER TABLE dbo.course
