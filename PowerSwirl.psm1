@@ -1,4 +1,3 @@
-
 function Start-PowerSwirl
 {
     [CmdletBinding()]
@@ -7,27 +6,57 @@ function Start-PowerSwirl
     (
     )
     
-    $database = "PowerSwirl"
-    $server_instance = "ROBERTG\SQL14"
-    $SQLCMD_object_type = "PSObject"
+    $params_Invoke_SQLCMD2 = @{}
 
-    Write-Host "Welcome to PowerSwirl" -ForegroundColor Green 
-    
+    $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
+    $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+    $params_Invoke_SQLCMD2["As"] = "PSObject"
+
+    Write-Host "Welcome to PowerSwirl" -ForegroundColor Green
+    #$user_id = Read-Host "Enter an existing login name or a new login name to create"
+    $user_id = $env:USERNAME
+    $query = 
+@"
+    DECLARE @lb_user_exists BIT = 1;
+    IF NOT EXISTS(SELECT * FROM dbo.user_hdr WHERE user_id = '$user_id')
+    BEGIN
+        INSERT INTO dbo.user_hdr(user_id) 
+        VALUES('$user_id');
+        SET @lb_user_exists = 0;
+    END
+
+    SELECT user_sid, @lb_user_exists AS user_exists
+    FROM dbo.user_hdr
+"@
+    $params_Invoke_SQLCMD2["Query"] = $query
+      
+    $user_info = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+    $user_sid = $user_info.user_sid
+    $user_exists = $user_info.user_exists 
+    $userna
+    if($user_exists)
+    {
+        Write-Host "Welcome back, $user_id"
+    }
+    else
+    {
+        Write-Host "New login created for username '$user_id'"
+    }
+
     #Choose an arbitrary numbering for abbreviated course selection
     $query = 
 @"
-                SELECT ROW_NUMBER() OVER (ORDER BY course_sid DESC) AS choice, course_sid, course_id 
-                FROM dbo.course_hdr;
+    SELECT ROW_NUMBER() OVER (ORDER BY course_id) AS choice, course_sid, course_id 
+    FROM dbo.course_hdr
+    ORDER BY course_id;
 "@
+    $params_Invoke_SQLCMD2["query"] = $query 
 
-    $course_hdr = Invoke-SQLCMD2 -ServerInstance $server_instance `
-    -Database $database `
-    -Query $query `
-    -As $SQLCMD_object_type
+    $course_hdr = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
     
     # Keep executing the following loop until a lesson is chosen.
     # This policy lets the user go back to the course list if he wishes to change his course selection
-    $returnToCourses = $true
+    $return_to_courses = $true
     do
     {
         Write-Output "The following courses are available" 
@@ -74,17 +103,16 @@ function Start-PowerSwirl
 
         $query = 
 @"
-                 SELECT ROW_NUMBER() OVER (ORDER BY course_sid) AS choice, lesson_sid, lesson_id
+                 SELECT ROW_NUMBER() OVER (ORDER BY lesson_id) AS choice, lesson_sid, lesson_id
                  FROM dbo.lesson_hdr
                  WHERE course_sid = $course_sid 
+                 ORDER BY lesson_id
 "@
 
-        $lesson_hdr = Invoke-SQLCMD2 -ServerInstance $server_instance `
-                                     -Database $database `
-                                     -AS $SQLCMD_object_Type `
-                                     -Query $query`
+        $params_Invoke_SQLCMD2["query"] = $query
 
-                  
+        $lesson_hdr = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+
         Write-Output "The following lessons are available for course: $choice_id"
         foreach($lesson in $lesson_hdr)
         {
@@ -101,7 +129,7 @@ function Start-PowerSwirl
             * User chooses to quit PowerSwirl by typing "q"
             * User chooses to return to course list
         #>
-        $continueLessonChoice = $true
+        $continue_lesson_choice = $true
         do
         {
             $choice = Read-Host "Choice" 
@@ -129,18 +157,19 @@ function Start-PowerSwirl
             }
             else
             {
-                $continueLessonChoice = $false 
-                $returnToCourses = $false
+                $continue_lesson_choice = $false 
+                $return_to_courses = $false
                 $choice_id = ($lesson_hdr | Where-Object {$_.choice -eq $choice}).lesson_id
                 $lesson_sid = ($lesson_hdr | Where-Object {$_.choice -eq $choice}).lesson_sid
                 Write-Host "Lesson chosen: $choice_id`n" -ForegroundColor Green                
             }
         }
-        while($continueLessonChoice)
+        while($continue_lesson_choice)
 
-    } while($returnToCourses)
+    } while($return_to_courses)
     
-    Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid
+    #Write-Host "Done" -ForegroundColor DarkYellow
+    Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid -user_sid $user_sid
 
 }
 
@@ -158,51 +187,48 @@ function Start-PowerSwirlLesson
         [ValidateNotNullOrEmpty()]
         [int] $step_num = 0,
 
+        [ValidateNotNullOrEmpty()]
+        [int] $user_sid,
+
         [switch] $disableForcePause
     )
      
 
     #Remove any lesson-in progress variables from the global scope
-    Remove-Variable -Force -Scope "global" -Name "course_sid","lesson_sid","step_num" -ErrorAction SilentlyContinue
+    #Remove-Variable -Force -Scope "global" -Name "course_sid","lesson_sid","step_num" -ErrorAction SilentlyContinue
 
-    $server_instance = "ROBERTG\SQL14"
-    $database = "PowerSwirl"
-    $SQLCMD_object_type = "PSObject"
+    $params_Invoke_SQLCMD2 = @{}
+    $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+    $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
+    $params_Invoke_SQLCMD2["As"] = "PSObject"
 
-
-    $query = 
+    $params_Invoke_SQLCMD2["Query"] = $query = 
 @"
                  SELECT step_num, step_prompt AS prompt, lesson_sid, requires_input_flag, execute_code_flag, store_var_flag, variable, solution
                  FROM dbo.lesson_dtl
                  WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
 "@
-   $lesson_dtl = Invoke-SQLCMD2 -ServerInstance $server_instance `
-                                     -Database $database `
-                                     -AS $SQLCMD_object_Type `
-                                     -Query $query`
-    $query = 
+
+    $lesson_dtl = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+
+    $params_Invoke_SQLCMD2["Query"] = $query = 
 @"
-                 SELECT step_num, step_prompt AS prompt, requires_input_flag, force_pause_flag, execute_code_flag, store_var_flag, variable, solution
+                 SELECT step_num, step_prompt AS prompt, requires_input_flag, execute_code_flag, store_var_flag, variable, solution
                  FROM dbo.lesson_dtl
                  WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
 "@
-   $lesson_dtl = Invoke-SQLCMD2 -ServerInstance $server_instance `
-                                     -Database $database `
-                                     -AS $SQLCMD_object_Type `
-                                     -Query $query`
-     $query = 
+    $lesson_dtl = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+
+    $params_Invoke_SQLCMD2["Query"] = $query = 
 @"
-                 SELECT num_steps
-                 FROM dbo.course_dtl
+                 SELECT COUNT(*) AS num_steps
+                 FROM dbo.lesson_dtl
                  WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
 "@  
-     $num_steps = Invoke-SQLCMD2 -ServerInstance $server_instance `
-                                 -Database $database `
-                                 -AS $SQLCMD_object_type `
-                                 -Query $query `
-                | Select-Object -ExpandProperty num_steps
+    $num_steps = Invoke-SQLCMD2 @params_Invoke_SQLCMD2 |
+                  Select-Object -ExpandProperty num_steps
     
-    $query =
+    $params_Invoke_SQLCMD2["Query"] = $query =
 @"
                  SELECT course_id, lesson_id 
                  FROM dbo.course_hdr AS CH
@@ -211,10 +237,8 @@ function Start-PowerSwirlLesson
                  WHERE CH.course_sid = $course_sid AND LH.lesson_sid = $lesson_sid
 "@
 
-    $course_lesson_ids = Invoke-SQLCMD2 -ServerInstance $server_instance `
-                                        -Database $database `
-                                        -As $SQLCMD_object_type `
-                                        -Query $query 
+    $course_lesson_ids = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+
     $course_id = $course_lesson_ids.course_id
     $lesson_id = $course_lesson_ids.lesson_id
     Write-Host "Loading course $course_id, lesson $lesson_id" -ForegroundColor Green 
@@ -238,8 +262,7 @@ function Start-PowerSwirlLesson
         }
     }
 
-
-    for($step = $step_num; $step -lt $num_steps; $step += 1)
+    for($step = $step_num; $step -lt <#$num_steps#> 1; $step += 1)
     {
         $curr = $lesson_dtl[$step]
 
@@ -325,14 +348,23 @@ function Start-PowerSwirlLesson
         } 
         $input = ""
     }
-    
 
-    if($pauseLesson)
+    if($pauseLesson = $true)
     {
+        <#
         $global_scope = "global"
         Set-Variable -Name course_sid -Value $course_sid -Scope $global_scope -Force -Option ReadOnly
         Set-Variable -Name lesson_sid -Value $lesson_sid -Scope $global_scope -Force -Option ReadOnly
         Set-Variable -Name step_num -Value $step -Scope $global_scope -Force -Option ReadOnly
+        #>
+        Set-Variable -Name PowerSwirlUser -Value $user_sid -Scope "global"
+        $params_Invoke_SQLCMD2["Query"] = 
+@"
+        INSERT INTO dbo.user_pause_state(user_sid, course_sid, lesson_sid, step_num)
+        VALUES ($user_sid, $course_sid, $lesson_sid, $step)
+"@
+        
+        Invoke-SQLCMD2 @params_Invoke_SQLCMD2
         Write-Host "Pausing PowerSwirl lesson, enabling code mode. Explore on your own and type 'nxt' to continue your lesson when you're ready." -ForegroundColor Green 
         return 
     }
@@ -349,6 +381,7 @@ function nxt
 
     Try
     {
+        <#
         $parent_scope = 2
         $inputs = Get-Variable -Name "course_sid","lesson_sid","step_num" -Scope $parent_scope         
         $input_count = $inputs | Measure-Object | Select -ExpandProperty Count
@@ -363,11 +396,35 @@ function nxt
         if($bad_vals -ne $null)
         {
             throw "All inputs must be non-null ints."
-        }
-    
+        }#>
+        $params_Invoke_SQLCMD2 = @{}
+
+        $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
+        $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+        $params_Invoke_SQLCMD2["As"] = "PSObject"
+        $params_Invoke_SQLCMD2["Query"] = $query = 
+@"
+        SELECT course_sid, lesson_sid, step_num 
+        FROM dbo.user_pause_state 
+        WHERE user_sid = $PowerSwirlUser
+"@
+       
+        $pause_info = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+        $course_sid = $pause_info.course_sid 
+        $lesson_sid = $pause_info.lesson_sid 
+        $step_num = $pause_info.step_num
+
+        $params_Invoke_SQLCMD2["Query"] = $query = 
+@"
+        DELETE FROM dbo.user_pause_state 
+        WHERE user_sid = $PowerSwirlUser
+"@
+        
+        Invoke-SQLCMD2 @params_Invoke_SQLCMD2
+
         Write-Host "Resuming lesson..." -ForegroundColor Green 
 
-        Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid -step_num $step_num -disableForcePause
+        Start-PowerSwirlLesson -course_sid $course_sid -lesson_sid $lesson_sid -step_num $step_num -user_sid $user_sid -disableForcePause
     }
     Catch
     {
@@ -485,7 +542,7 @@ function Import-PowerSwirlLesson
         }
         if(fieldIsEmpty($step.store_var_flag))
         {
-            $step.store_var_flag = "0"
+            $step.store_var_flag = "0" 
         }
         if(fieldIsEmpty($step.solution))
         {
@@ -617,8 +674,8 @@ function Import-PowerSwirlLesson
               IF EXISTS(SELECT * FROM dbo.course_dtl WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid)
                 DELETE FROM dbo.course_dtl WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
 
-              INSERT INTO dbo.course_dtl(course_sid, lesson_sid, step_num, num_steps, lesson_in_progress_flag, lesson_completed_flag)
-              VALUES($course_sid, $lesson_sid, $step_num, $num_steps, $lesson_in_progress_flag, $lesson_completed_flag)
+              INSERT INTO dbo.course_dtl(course_sid, lesson_sid, step_num, lesson_in_progress_flag, lesson_completed_flag)
+              VALUES($course_sid, $lesson_sid, $step_num, $lesson_in_progress_flag, $lesson_completed_flag)
 "@
 
     Invoke-SQLCMD2 -ServerInstance $serverInstance `

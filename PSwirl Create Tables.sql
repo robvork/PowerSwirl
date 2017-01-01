@@ -1,11 +1,5 @@
 USE PowerSwirl
 
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
 IF OBJECT_ID('dbo.course_hdr', 'U') IS NOT NULL
 	DROP TABLE dbo.course_hdr;
 GO
@@ -23,11 +17,7 @@ GO
 CREATE TABLE dbo.course_dtl
 (
 	course_sid SID NOT NULL,
-	lesson_sid SID NOT NULL,
-	step_num STEP NOT NULL DEFAULT(1),
-	num_steps STEP NOT NULL,
-	lesson_in_progress_flag FLAG NOT NULL,
-	lesson_completed_flag FLAG NOT NULL
+	lesson_sid SID NOT NULL
 	PRIMARY KEY(course_sid, lesson_sid)
 );
 
@@ -74,6 +64,50 @@ CREATE TABLE [dbo].[Nums](
 
 GO
 
+IF OBJECT_ID('dbo.user_hdr', 'U') IS NOT NULL
+	DROP TABLE dbo.user_hdr;
+GO
+
+CREATE TABLE dbo.user_hdr
+(
+	user_sid SID NOT NULL IDENTITY(1, 1),
+	user_id ID NOT NULL
+);
+
+IF OBJECT_ID('dbo.user_course', 'U') IS NOT NULL
+	DROP TABLE dbo.user_course;
+GO
+
+CREATE TABLE dbo.user_course
+(
+	user_sid SID NOT NULL,
+	course_sid SID NOT NULL,
+	lesson_sid SID NOT NULL,
+	step_num STEP NOT NULL DEFAULT(1),
+	lesson_in_progress_flag FLAG NOT NULL DEFAULT(0),
+	lesson_completed_flag FLAG NOT NULL DEFAULT(0)
+	PRIMARY KEY(user_sid, course_sid, lesson_sid)
+);
+
+IF OBJECT_ID('dbo.user_pause_state', 'U') IS NOT NULL
+	DROP TABLE dbo.user_pause_state;
+GO
+
+CREATE TABLE dbo.user_pause_state
+(
+	user_sid SID NOT NULL,
+	course_sid SID NOT NULL,
+	lesson_sid SID NOT NULL,
+	step_num STEP NOT NULL
+	PRIMARY KEY(user_sid)
+);
+
+IF OBJECT_ID('dbo.next_sid', 'U') IS NOT NULL
+	DROP TABLE dbo.next_sid;
+GO
+
+CREATE TABLE dbo.next_sid
+
 INSERT INTO dbo.Nums
 SELECT n FROM TSQL2012.dbo.Nums;  
 
@@ -85,16 +119,12 @@ WHERE nums.n <= 4;
 
 INSERT INTO dbo.course_dtl
 	   (course_sid, 
-	    lesson_sid, 
-		step_num, 
-		num_steps, 
-		lesson_in_progress_flag, 
-		lesson_completed_flag)
-VALUES (1, 1, 1, 2, 0, 0), 
-	   (2, 1, 1, 6, 0, 0), 
-	   (3, 1, 3, 7, 1, 0),
-	   (4, 1, 2, 2, 0, 1),
-	   (4, 2, 1, 3, 0, 0);
+	    lesson_sid)
+VALUES (1, 1), 
+	   (2, 1), 
+	   (3, 1),
+	   (4, 1),
+	   (4, 2);
 
 
 
@@ -120,7 +150,7 @@ FROM dbo.course_dtl AS C
 		(
 			SELECT n 
 			FROM dbo.Nums
-			WHERE n <= C.num_steps
+			WHERE n <= ABS(CHECKSUM(NEWID())) % 15 + 5
 		) AS nums
 
 INSERT INTO dbo.lesson_hdr(course_sid, lesson_sid, lesson_id)
@@ -144,3 +174,27 @@ SELECT * FROM dbo.lesson_dtl;
 
 --SELECT * FROM dbo.lesson_dtl
 --WHERE course_sid = 4 AND lesson_sid = 2;
+
+--SELECT ABS(CHECKSUM(NEWID())) % 15 + 5
+
+BEGIN TRAN
+DELETE FROM dbo.user_hdr;
+SELECT * FROM dbo.user_hdr;
+SELECT * FROM dbo.user_course
+ROLLBACK TRAN
+
+INSERT INTO dbo.user_hdr(user_id) 
+VALUES ('Rob'), ('Jim')
+
+DELETE FROM user_pause_state
+
+SELECT * FROM dbo.user_hdr
+
+SELECT * FROM dbo.user_course
+SELECT * FROM dbo.lesson_dtl
+
+SET FMTONLY ON;
+SELECT * FROM dbo.lesson_dtl
+SET FMTONLY OFF;
+
+SELECT * FROM dbo.user_pause_state

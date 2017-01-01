@@ -10,7 +10,6 @@ IF OBJECT_ID('dbo.course_hdr', 'U') IS NOT NULL
 IF OBJECT_ID('dbo.course_dtl', 'U') IS NOT NULL
 	DROP TABLE dbo.course_dtl; 
 
-
 IF OBJECT_ID('dbo.lesson_hdr', 'U') IS NOT NULL
 	DROP TABLE dbo.lesson_hdr; 
 
