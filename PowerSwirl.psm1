@@ -9,14 +9,14 @@ function Start-PowerSwirl
     $params_Invoke_SQLCMD2 = @{}
 
     $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
-    $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+    $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
     $params_Invoke_SQLCMD2["As"] = "PSObject"
 
     Write-Host "Welcome to PowerSwirl" -ForegroundColor Green
-    #$user_id = Read-Host "Enter an existing login name or a new login name to create"
     $user_id = $env:USERNAME
-    $query = 
-@"
+
+    $query = "EXEC dbo.p_get_user @as_user_id = '$user_id'"
+<#@"
     DECLARE @lb_user_exists BIT = 1;
     IF NOT EXISTS(SELECT * FROM dbo.user_hdr WHERE user_id = '$user_id')
     BEGIN
@@ -27,13 +27,13 @@ function Start-PowerSwirl
 
     SELECT user_sid, @lb_user_exists AS user_exists
     FROM dbo.user_hdr
-"@
+@"#>
     $params_Invoke_SQLCMD2["Query"] = $query
       
     $user_info = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
     $user_sid = $user_info.user_sid
     $user_exists = $user_info.user_exists 
-    $userna
+
     if($user_exists)
     {
         Write-Host "Welcome back, $user_id"
@@ -42,14 +42,15 @@ function Start-PowerSwirl
     {
         Write-Host "New login created for username '$user_id'"
     }
+   
 
     #Choose an arbitrary numbering for abbreviated course selection
-    $query = 
-@"
+    $query =  "EXEC dbo.p_get_courses"
+<#@"
     SELECT ROW_NUMBER() OVER (ORDER BY course_id) AS choice, course_sid, course_id 
     FROM dbo.course_hdr
     ORDER BY course_id;
-"@
+@"#>
     $params_Invoke_SQLCMD2["query"] = $query 
 
     $course_hdr = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
@@ -64,7 +65,7 @@ function Start-PowerSwirl
         {
             Write-Output ($course.choice.ToString() + " : " +$course.course_id)
         }
-
+        
         $max_choice = ($course_hdr.choice | measure -Maximum).Maximum.ToString()
         Write-Output "Choose a course between 1 and $max_choice above or press q to quit.`n"
 
@@ -101,13 +102,13 @@ function Start-PowerSwirl
     
         $course_sid = ($course_hdr | Where-Object {$_.choice -eq $choice}).course_sid
 
-        $query = 
-@"
+        $query = "EXEC dbo.p_get_lessons @ai_course_sid = $course_sid"
+<#@"
                  SELECT ROW_NUMBER() OVER (ORDER BY lesson_id) AS choice, lesson_sid, lesson_id
                  FROM dbo.lesson_hdr
                  WHERE course_sid = $course_sid 
                  ORDER BY lesson_id
-"@
+@"#>
 
         $params_Invoke_SQLCMD2["query"] = $query
 
@@ -198,49 +199,29 @@ function Start-PowerSwirlLesson
     #Remove-Variable -Force -Scope "global" -Name "course_sid","lesson_sid","step_num" -ErrorAction SilentlyContinue
 
     $params_Invoke_SQLCMD2 = @{}
-    $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+    $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
     $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
     $params_Invoke_SQLCMD2["As"] = "PSObject"
 
-    $params_Invoke_SQLCMD2["Query"] = $query = 
-@"
+    $params_Invoke_SQLCMD2["Query"] = $query = "EXEC dbo.p_get_lesson_content @ai_course_sid = $course_sid, @ai_lesson_sid = $lesson_sid"
+<#@"
                  SELECT step_num, step_prompt AS prompt, lesson_sid, requires_input_flag, execute_code_flag, store_var_flag, variable, solution
                  FROM dbo.lesson_dtl
                  WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
-"@
+"@#>
 
     $lesson_dtl = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
 
-    $params_Invoke_SQLCMD2["Query"] = $query = 
-@"
-                 SELECT step_num, step_prompt AS prompt, requires_input_flag, execute_code_flag, store_var_flag, variable, solution
-                 FROM dbo.lesson_dtl
-                 WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
-"@
-    $lesson_dtl = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
-
-    $params_Invoke_SQLCMD2["Query"] = $query = 
-@"
+    $params_Invoke_SQLCMD2["Query"] = $query = "EXEC dbo.p_get_lesson_info @ai_course_sid = $course_sid, @ai_lesson_sid = $lesson_sid"
+<#@"
                  SELECT COUNT(*) AS num_steps
                  FROM dbo.lesson_dtl
                  WHERE course_sid = $course_sid AND lesson_sid = $lesson_sid
-"@  
-    $num_steps = Invoke-SQLCMD2 @params_Invoke_SQLCMD2 |
-                  Select-Object -ExpandProperty num_steps
-    
-    $params_Invoke_SQLCMD2["Query"] = $query =
-@"
-                 SELECT course_id, lesson_id 
-                 FROM dbo.course_hdr AS CH
-                    INNER JOIN dbo.lesson_hdr AS LH
-                        ON CH.course_sid = LH.course_sid
-                 WHERE CH.course_sid = $course_sid AND LH.lesson_sid = $lesson_sid
-"@
-
-    $course_lesson_ids = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
-
-    $course_id = $course_lesson_ids.course_id
-    $lesson_id = $course_lesson_ids.lesson_id
+"@#>  
+    $lesson_info = Invoke-SQLCMD2 @params_Invoke_SQLCMD2  
+    $num_steps = $lesson_info.num_steps
+    $course_id = $lesson_info.course_id
+    $lesson_id = $lesson_info.lesson_id
     Write-Host "Loading course $course_id, lesson $lesson_id" -ForegroundColor Green 
 
     function codeObjectsEqual
@@ -262,11 +243,18 @@ function Start-PowerSwirlLesson
         }
     }
 
-    for($step = $step_num; $step -lt <#$num_steps#> 1; $step += 1)
+    $pauseLesson = $false
+    for($step = $step_num; $step -lt $num_steps; $step += 1)
     {
         $curr = $lesson_dtl[$step]
 
-        Write-Output $curr.prompt
+        Write-Output $curr.step_prompt
+
+        if($step % 4 -eq 3 -and -not $disableForcePause)
+        {
+             $pauseLesson = $true
+             break
+        }
 
         if($curr.store_var_flag)
         {
@@ -281,16 +269,15 @@ function Start-PowerSwirlLesson
                 
         }
 
-        if($curr.force_pause_flag -and -not $disableForcePause)
-        {
-            $pauseLesson = $true
-            break
-        }
-
-
         if($curr.requires_input_flag)
         {
-             
+            if(-not $disableForcePause)
+            {
+                $pauseLesson = $true
+                break
+            }
+
+
              $solution = $curr.solution
              
              Write-Host "Type 'play' to enter code mode, or attempt an answer to the question"        
@@ -349,7 +336,7 @@ function Start-PowerSwirlLesson
         $input = ""
     }
 
-    if($pauseLesson = $true)
+    if($pauseLesson)
     {
         <#
         $global_scope = "global"
@@ -358,11 +345,14 @@ function Start-PowerSwirlLesson
         Set-Variable -Name step_num -Value $step -Scope $global_scope -Force -Option ReadOnly
         #>
         Set-Variable -Name PowerSwirlUser -Value $user_sid -Scope "global"
-        $params_Invoke_SQLCMD2["Query"] = 
-@"
+        $params_Invoke_SQLCMD2["Query"] = "EXEC dbo.p_set_lesson_paused @ai_course_sid = $course_sid,
+                                                                        @ai_lesson_sid = $lesson_sid,
+                                                                        @ai_user_sid = $user_sid,
+                                                                        @ai_step_num = $step"
+<#@"
         INSERT INTO dbo.user_pause_state(user_sid, course_sid, lesson_sid, step_num)
         VALUES ($user_sid, $course_sid, $lesson_sid, $step)
-"@
+"@#>
         
         Invoke-SQLCMD2 @params_Invoke_SQLCMD2
         Write-Host "Pausing PowerSwirl lesson, enabling code mode. Explore on your own and type 'nxt' to continue your lesson when you're ready." -ForegroundColor Green 
@@ -400,25 +390,28 @@ function nxt
         $params_Invoke_SQLCMD2 = @{}
 
         $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
-        $params_Invoke_SQLCMD2["ServerInstance"] = "ROBERTG\SQL14"
+        $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
         $params_Invoke_SQLCMD2["As"] = "PSObject"
-        $params_Invoke_SQLCMD2["Query"] = $query = 
-@"
+        $params_Invoke_SQLCMD2["Query"] = "EXEC dbo.p_get_user @as_user_id = '$($env:USERNAME)'" 
+        $user_sid = Invoke-SQLCMD2 @params_Invoke_SQLCMD2 | Select-Object -ExpandProperty user_sid
+
+        $params_Invoke_SQLCMD2["Query"] = $query = "EXEC dbo.p_get_pause_info @ai_user_sid = $user_sid"
+<#@"
         SELECT course_sid, lesson_sid, step_num 
         FROM dbo.user_pause_state 
         WHERE user_sid = $PowerSwirlUser
-"@
+"@#>
        
         $pause_info = Invoke-SQLCMD2 @params_Invoke_SQLCMD2
         $course_sid = $pause_info.course_sid 
         $lesson_sid = $pause_info.lesson_sid 
         $step_num = $pause_info.step_num
 
-        $params_Invoke_SQLCMD2["Query"] = $query = 
-@"
+        $params_Invoke_SQLCMD2["Query"] = $query = "EXEC dbo.p_delete_user_pause_info @ai_user_sid = $user_sid"
+<#@"
         DELETE FROM dbo.user_pause_state 
         WHERE user_sid = $PowerSwirlUser
-"@
+"@#>
         
         Invoke-SQLCMD2 @params_Invoke_SQLCMD2
 
@@ -494,8 +487,8 @@ function Import-PowerSwirlLesson
     Write-Verbose "Checking that the first and third lines of the file contain the proper field names"
     $lessonHeader1 = (gc -path $Path) | Select -first 1 | ForEach-Object {$_.TrimEnd(",")}
     $lessonHeader2 = (gc -path $Path) | Select -first 1 -Skip 2 | ForEach-Object {$_.TrimEnd(",")}
-    $templateHeader1 = Get-Content -Path .\import_template.csv | Select-Object -First 1 -Skip 0 | ForEach-Object {$_.TrimEnd(",")}
-    $templateHeader2 = Get-Content -Path .\import_template.csv | Select-Object -First 1 -Skip 2 | ForEach-Object {$_.TrimEnd(",")}
+    $templateHeader1 = Get-Content -Path D:\PowerSwirl\import_template.csv | Select-Object -First 1 -Skip 0 | ForEach-Object {$_.TrimEnd(",")}
+    $templateHeader2 = Get-Content -Path D:\PowerSwirl\import_template.csv | Select-Object -First 1 -Skip 2 | ForEach-Object {$_.TrimEnd(",")}
     if($lessonHeader1 -ne $templateHeader1)
     {
         throw "The first line must match the following exactly: $templateHeader1" 
@@ -531,10 +524,6 @@ function Import-PowerSwirlLesson
         if(fieldIsEmpty($step.requires_input_flag))
         {
             $step.requires_input_flag = "0"
-        }
-        if(fieldIsEmpty($step.force_pause_flag))
-        {
-            $step.force_pause_flag = "0"
         }
         if(fieldIsEmpty($step.execute_code_flag))
         {
@@ -690,7 +679,6 @@ function Import-PowerSwirlLesson
          
         $step_prompt = "'$($step.step_prompt.toString().replace("'", "''"))'"
         $requires_input = $step.requires_input_flag
-        $force_pause = $step.force_pause_flag 
         $execute_code = $step.execute_code_flag
         $store_var = $step.store_var_flag
         
@@ -718,8 +706,8 @@ function Import-PowerSwirlLesson
         
         $query =
 @"
-              INSERT INTO dbo.lesson_dtl(course_sid, lesson_sid, step_num, step_prompt, requires_input_flag, force_pause_flag, execute_code_flag, store_var_flag, solution, variable)
-              VALUES($course_sid, $lesson_sid, $step_num, $step_prompt, $requires_input, $force_pause, $execute_code, $store_var, $solution, $var)
+              INSERT INTO dbo.lesson_dtl(course_sid, lesson_sid, step_num, step_prompt, requires_input_flag, execute_code_flag, store_var_flag, solution, variable)
+              VALUES($course_sid, $lesson_sid, $step_num, $step_prompt, $requires_input, $execute_code, $store_var, $solution, $var)
 "@
            
         Write-Verbose $query 

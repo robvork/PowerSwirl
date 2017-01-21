@@ -1,3 +1,5 @@
+USE PowerSwirl;
+
 SELECT * FROM sys.all_columns;
 
 SELECT * FROM sys.tables; 

@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<SqlWorkbenchSqlProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" Name="PowerSwirl">
+  <Items>
+    <LogicalFolder Name="Connections" Type="2" Sorted="true">
+      <Items>
+        <ConnectionNode Name="RGEVORKYAN\SQL12:REALSOFTWARE\rgevorkyan">
+          <Created>2017-01-14T11:35:07.5019614-08:00</Created>
+          <Type>SQL</Type>
+          <Server>RGEVORKYAN\SQL12</Server>
+          <UserName />
+          <Authentication>Windows Authentication</Authentication>
+          <InitialDB />
+          <LoginTimeout>0</LoginTimeout>
+          <ExecutionTimeout>0</ExecutionTimeout>
+          <ConnectionProtocol>NotSpecified</ConnectionProtocol>
+          <ApplicationName>Microsoft SQL Server Management Studio - Query</ApplicationName>
+        </ConnectionNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Queries" Type="0" Sorted="true">
+      <Items>
+        <FileNode Name="PSwirl Create Data Types.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:RGEVORKYAN\SQL12:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>RGEVORKYAN\SQL12</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>PSwirl Create Data Types.sql</FullPath>
+        </FileNode>
+        <FileNode Name="PSwirl Create Stored Procedures.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:RGEVORKYAN\SQL12:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>RGEVORKYAN\SQL12</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>PSwirl Create Stored Procedures.sql</FullPath>
+        </FileNode>
+        <FileNode Name="PSwirl Create Tables.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:RGEVORKYAN\SQL12:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>RGEVORKYAN\SQL12</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>PSwirl Create Tables.sql</FullPath>
+        </FileNode>
+        <FileNode Name="PSwirl Create Triggers.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>PSwirl Create Triggers.sql</FullPath>
+        </FileNode>
+        <FileNode Name="PSwirl Create Views.sql">
+          <AssociatedConnectionMoniker>8c91a03d-f9b4-46c0-a305-b5dcc79ff907:RGEVORKYAN\SQL12:True</AssociatedConnectionMoniker>
+          <AssociatedConnSrvName>RGEVORKYAN\SQL12</AssociatedConnSrvName>
+          <AssociatedConnUserName />
+          <FullPath>PSwirl Create Views.sql</FullPath>
+        </FileNode>
+        <FileNode Name="PSwirl SketchPad.sql">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>PSwirl SketchPad.sql</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+    <LogicalFolder Name="Miscellaneous" Type="3" Sorted="true">
+      <Items>
+        <FileNode Name="import_template.csv">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>import_template.csv</FullPath>
+        </FileNode>
+        <FileNode Name="lesson_finding_commands.csv">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>lesson_finding_commands.csv</FullPath>
+        </FileNode>
+        <FileNode Name="PowerSwirl.psm1">
+          <AssociatedConnectionMoniker />
+          <AssociatedConnSrvName />
+          <AssociatedConnUserName />
+          <FullPath>PowerSwirl.psm1</FullPath>
+        </FileNode>
+      </Items>
+    </LogicalFolder>
+  </Items>
+</SqlWorkbenchSqlProject>
