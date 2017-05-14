@@ -1,3 +1,10 @@
+<#######################################################################################
+PowerSwirl
+
+PowerSwirl is an interactive environment for learning PowerShell, SQL, and other programming languages
+and concepts.
+########################################################################################>
+
 function Start-PowerSwirl
 {
     [CmdletBinding()]
@@ -9,7 +16,7 @@ function Start-PowerSwirl
     $params_Invoke_SQLCMD2 = @{}
 
     $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
-    $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
+    $params_Invoke_SQLCMD2["ServerInstance"] = "ASPIRING\SQL16"
     $params_Invoke_SQLCMD2["As"] = "PSObject"
 
     Write-Host "Welcome to PowerSwirl" -ForegroundColor Green
@@ -199,7 +206,7 @@ function Start-PowerSwirlLesson
     #Remove-Variable -Force -Scope "global" -Name "course_sid","lesson_sid","step_num" -ErrorAction SilentlyContinue
 
     $params_Invoke_SQLCMD2 = @{}
-    $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
+    $params_Invoke_SQLCMD2["ServerInstance"] = "ASPIRING\SQL16"
     $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
     $params_Invoke_SQLCMD2["As"] = "PSObject"
 
@@ -390,7 +397,7 @@ function nxt
         $params_Invoke_SQLCMD2 = @{}
 
         $params_Invoke_SQLCMD2["Database"] = "PowerSwirl"
-        $params_Invoke_SQLCMD2["ServerInstance"] = "RGEVORKYAN\SQL12"
+        $params_Invoke_SQLCMD2["ServerInstance"] = "ASPIRING\SQL16"
         $params_Invoke_SQLCMD2["As"] = "PSObject"
         $params_Invoke_SQLCMD2["Query"] = "EXEC dbo.p_get_user @as_user_id = '$($env:USERNAME)'" 
         $user_sid = Invoke-SQLCMD2 @params_Invoke_SQLCMD2 | Select-Object -ExpandProperty user_sid
@@ -498,7 +505,7 @@ function Import-PowerSwirlLesson
         throw "The third line must match the following exactly: $templateHeader2" 
     }
     
-    $serverInstance = "ROBERTG\SQL14"
+    $serverInstance = "ASPIRING\SQL16"
     $database = "PowerSwirl"
 
 
@@ -724,6 +731,383 @@ function Import-PowerSwirlLesson
         Write-Host "Error encountered: $($_.Exception.Message)" -ForegroundColor Red 
     }
 }
+
+function Start-PowerSwirl
+{
+    [CmdletBinding()]
+    param
+    (
+        [String]
+        $ServerInstance
+
+    ,   [String]
+        $Database
+
+    ,   [String]
+        $User
+
+    ,   [System.Security.SecureString]
+        $Password
+
+    ,   [String] 
+        $CourseID
+
+    ,   [String]
+        $LessonID
+
+    ,   [Int]
+        $Step
+    )
+
+    if($ServerInstance -eq $null -or 
+       $Database -eq $null)
+    {
+        $ServerInstance = Read-SQLServerInstance
+        $Database = Read-SQLServerDatabase -SQLServerInstance $ServerInstance
+    }
+
+
+
+}
+
+function Read-SQLServerInstance
+{
+    <#
+        .SYNOPSIS
+        Get SQL Server instance from user
+
+        .DESCRIPTION
+        Write a prompt for SQL Server instance name to information stream and return the results
+    #>
+}
+
+function Read-SQLServerDatabase
+{
+    param
+    (
+        [String] 
+        $ServerInstance
+    )
+
+    <#
+        .SYNOPSIS
+        Get SQL Server database from user
+
+        .DESCRIPTION
+        Write a prompt for SQL Server database given an instance name that has already been specified
+    #>
+
+}
+
+function Test-SQLServerConnection
+{
+    <#
+        .SYNOPSIS
+        Test whether the SQL Server instance and database are valid. 
+
+        .DESCRIPTION
+        First test whether the SQL Server instance is valid by checking whether system-defined tables exist for the instance name.
+        If this passes, then test that SQL Server instance with the specified database
+    #>
+
+    param
+    (
+        [String]
+        $ServerInstance
+
+    ,   [String]
+        $Database
+    )
+
+    try
+    {
+        try
+        {
+            $ConnectionString = "Server=$ServerInstance;Database=master;Integrated Security=True"
+            Test-SQLServerConnectionString $ConnectionString
+        }
+        catch
+        {
+            Write-Error -Message "Invalid SQL Server Instance `"$ServerInstance`"" -Exception $_.Exception 
+        }
+
+        try
+        {
+            $ConnectionString = "Server=$ServerInstance;Database=$Database;Integrated Security=True"
+            Test-SQLServerConnectionString $ConnectionString
+        }
+        catch
+        {
+            Write-Error -Message "Invalid SQL Server Database `"$Database`" for SQL Server instance $ServerInstance" -Exception $_.Exception 
+        }
+        
+    }
+    catch
+    {
+        Write-Error -Category InvalidArgument -Message $_.Exception.Message -Exception $_.Exception
+    }
+}
+
+function Test-SQLServerConnectionString
+{
+    <#
+        .SYNOPSIS
+        Test a SQL server connection string
+
+        .DESCRIPTION
+        Test a System.Data.SqlClient.SqlConnection SQL Server connection string by opening and closing a connection
+        with the passed connection string. If something goes wrong, pass exception to caller for handling.
+    #>
+    param
+    (
+        [string]
+        $SQLServerConnectionString
+    )
+
+    $SQLServerConnection = [System.Data.SqlClient.SqlConnection] $ConnectionString
+    $SQLServerConnection.Open()
+    $SQLServerConnection.Close()
+}
+
+function Read-Credential
+{
+    <#
+        .SYNOPSIS
+        Read user and password from user
+
+        .DESCRIPTION
+        Read a SQL Server login and password from user, storing the password as a SecureString tied to the user's Windows login and machine
+    #>
+}
+
+function Get-CourseHeader
+{
+    <#
+        .SYNOPSIS
+        Get PowerSwirl courses 
+
+        .DESCRIPTION
+        Get the PowerSwirl course headers. A course header record consists of a descriptive name and a numeric course sid. 
+        The user sees the descriptive name, but the database processes the course sid. 
+    #>
+
+    param
+    (
+        [string]
+        $ServerInstance 
+    
+    ,   [string]
+        $Database
+    )
+
+
+}
+
+function Get-CourseDetail
+{
+    <#
+        .SYNOPSIS
+        Get PowerSwirl course to lesson mapping
+
+        .DESCRIPTION
+        Get the PowerSwirl course details. A course detail record consists of the numeric lesson sids associated with a given
+        course sid. The course detail record does not include the course sid because it is redundant.
+    #>
+}
+
+
+function Get-LessonHeader
+{
+    <#
+        .SYNOPSIS
+        Get PowerSwirl lesson headers
+
+        .DESCRIPTION
+        Get the PowerSwirl lesson headers. A lesson header record consists of numeric lesson sids and a descriptive name.
+        The user sees the descriptive name, but the database processes the lesson sid.
+    #>
+}
+
+function Get-LessonDetail
+{
+    <#
+        .SYNOPSIS
+        Get the PowerSwirl lesson data needed for the presentation of a lesson
+
+        .DESCRIPTION
+        Get the PowerSwirl lesson data, consisting of columns step_prompt, requires_input_flag, execute_code_flag, store_variable_flag, solution, and variable.
+        Each record corresponds to a single step in a lesson. The step_prompt and flag values are mandatory, but the solution and variable flags are mandatory
+        if and only if the requires_input_flag and store_variable_flag flags are set to true, respectively. 
+    #>
+}
+
+function Write-Prompt
+{
+    <#
+        .SYNOPSIS
+        Writes the current step's prompt
+
+        .DESCRIPTION
+        Write the step prompt to the information stream and the host
+    #>
+}
+
+function Read-StepInput
+{
+    <#
+        .SYNOPSIS
+        Read the user's input
+
+        .DESCRIPTION
+        Let the user write to the information stream. Read his input from this stream.
+    #>
+}
+
+function Test-StepInput
+{
+    <#
+        .SYNOPSIS
+        Test the user's input against the true solution
+
+        .DESCRIPTION
+        Evaluate the user's input, either code or literal values, to the stored solution. The answer the user provides must be exactly
+        the same as the solution when literal values are expected, but any equivalent (under code evaluation) code will work. That is, superficial
+        differences between the user's answer and the stored solution do not invalidate a correct answer.
+    #>
+}
+
+function Write-UserIncorrect
+{
+    <#
+        .SYNOPSIS
+        Write a message indicating that the user answered incorrectly
+
+        .DESCRIPTION
+        Write a message to the information stream, chosen from one or more possible messages, indicating an incorrect answer.
+    #>
+}
+
+function Write-UserCorrect
+{
+    <#
+        .SYNOPSIS
+        Write a message indicating that the user answered correctly
+
+        .DESCRIPTION
+        Write a message to the information stream, chosen from one or more possible messages, indicating a correct answer.
+    #>
+}
+
+function Save-Lesson
+{
+    <#
+        .SYNOPSIS
+        Save the progress on the current lesson
+
+        .DESCRIPTION
+        Store the user's current step number within the course and lesson. 
+        A call to Resume-Lesson depends on a prior execution of this command.
+    #>
+}
+
+function Resume-Lesson
+{
+    <#
+        .SYNOPSIS
+        Resume a lesson that was saved
+
+        .DESCRIPTION
+        Using the currenet user's step number within a given course and lesson, resume a lesson
+        where it was left off previously. Produces an error if no corresponding value found. 
+    #>
+}
+
+function Import-LessonHeader
+{
+    param
+    (
+        [string] $CourseID
+    ,   [string] $LessonID
+    )
+}
+
+function Test-LessonHeader
+{}
+
+class LessonDetail
+{
+    [String] $StepPrompt
+    [Boolean] $RequiresInputFlag 
+    [Boolean] $ExecuteCodeFlag
+    [Boolean] $StoreVariableFlag
+    [String] $Solution
+    [String] $Variable 
+
+    LessonDetail( [String] $StepPrompt,
+    [Boolean] $RequiresInputFlag, 
+    [Boolean] $ExecuteCodeFlag,
+    [Boolean] $StoreVariableFlag,
+    [String] $Solution,
+    [String] $Variable
+    )
+    {
+        $this.StepPrompt = $StepPrompt;
+        $this.RequiresInputFlag = $RequiresInputFlag;
+        $this.ExecuteCodeFlag = $ExecuteCodeFlag;
+        $this.StoreVariableFlag = $StoreVariableFlag;
+        $this.Solution = $Solution;
+        $this.Variable = $Variable; 
+    }
+
+}
+
+function Import-LessonDetail
+{
+    <#
+        .SYNOPSIS 
+        Imports lesson detail rows 
+
+        .DESCRIPTION
+        Merges lesson detail rows into database as a single operation
+    #>
+    param
+    (
+        [LessonDetail[]] $LessonDetail
+    )
+}
+
+function New-Course
+{
+    <#
+        .SYNOPSIS
+        Creates a new course 
+
+        .DESCRIPTION
+        Generates a new course record with no associated lessons and returns the corresponding course sid for further processing. 
+    #>
+    param
+    (
+        [String] $CourseName 
+    )
+
+}
+
+function New-Lesson
+{
+    <#
+        .SYNOPSIS
+        Creates a new lesson for a given course
+
+        .DESCRIPTION
+        Generates a new lesson record for a given course and returns the corresponding lesson sid for further processing
+    #>
+    param
+    (
+        [String] $CourseSid
+    ,   [String] $CourseName 
+    )
+}
+
 
 Set-Alias -Name "psw" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
