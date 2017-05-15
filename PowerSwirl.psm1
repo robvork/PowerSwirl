@@ -864,9 +864,17 @@ function Test-SQLServerConnectionString
         $SQLServerConnectionString
     )
 
-    $SQLServerConnection = [System.Data.SqlClient.SqlConnection] $ConnectionString
-    $SQLServerConnection.Open()
-    $SQLServerConnection.Close()
+    try
+    {
+        $SQLServerConnection = [System.Data.SqlClient.SqlConnection] $ConnectionString
+        $SQLServerConnection.Open()
+        $SQLServerConnection.Close()
+    }
+    catch
+    {
+        Write-Error -Exception $_.Exception -Message "Connection string invalid" -Category InvalidArgument
+    }
+
 }
 
 function Read-Credential
@@ -877,6 +885,14 @@ function Read-Credential
 
         .DESCRIPTION
         Read a SQL Server login and password from user, storing the password as a SecureString tied to the user's Windows login and machine
+    #>
+}
+
+function Test-Credential
+{
+    <#
+        .SYNOPSIS
+        Test that user and password are valid for a given ServerInstance and Database
     #>
 }
 
@@ -1113,6 +1129,7 @@ Set-Alias -Name "psw" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
 Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
+
 
 Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
 Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"
