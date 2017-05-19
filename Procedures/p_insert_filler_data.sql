@@ -465,7 +465,9 @@ BEGIN
 				THEN 1
 			ELSE	
 				0
-		END 
+		END
+	,	min_val = 0
+	,	max_val = 1
 	WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw	
 	;
 
@@ -474,6 +476,7 @@ BEGIN
 		SELECT '#sample w/ draw converted to binary decision';
 		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw; 
 	END;
+
 	/******************************************************************************
 	For each user, course, and lesson, if the previous draw determined that
 	the user is in progress for that course and lesson, sample the step_num
