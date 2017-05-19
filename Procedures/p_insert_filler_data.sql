@@ -12,6 +12,8 @@ CREATE PROCEDURE dbo.p_insert_filler_data
 ,	@ai_min_users BIGINT = 1 
 ,	@ai_max_users BIGINT = 1 
 ,	@ai_debug_level INT = 0
+,	@af_probability_lesson_in_progress FLOAT = 0.5
+,	@af_probability_lesson_completed FLOAT = 0.2
 )
 AS
 BEGIN
@@ -23,9 +25,21 @@ BEGIN
 	DECLARE @li_sample_type_sid_lesson_count_by_course TINYINT;
 	DECLARE @li_sample_type_sid_step_count_by_lesson TINYINT;
 	DECLARE @li_sample_type_sid_user_count TINYINT;
+	DECLARE @li_sample_type_sid_lesson_in_progress_draw TINYINT;
+	DECLARE @li_sample_type_sid_lesson_completed_draw TINYINT;
+	DECLARE @li_sample_type_sid_step_num TINYINT;
+	
+	DECLARE @li_probability_lesson_completed_rounded TINYINT;
+	DECLARE @li_probability_lesson_in_progress_rounded TINYINT;
 
 	DECLARE @ls_sample_table_name SYSNAME;
 	DECLARE @ls_curr_step NVARCHAR(100);
+
+	/******************************************************************************
+	Initialize local variables
+	******************************************************************************/
+	SET @li_probability_lesson_in_progress_rounded = CAST((@af_probability_lesson_in_progress * 100) AS INT);
+	SET @li_probability_lesson_completed_rounded = CAST((@af_probability_lesson_completed * 100) AS INT);
 
 	/******************************************************************************
 	Create temp tables
@@ -99,6 +113,9 @@ BEGIN
 	SET @li_sample_type_sid_lesson_count_by_course = 2;
 	SET @li_sample_type_sid_step_count_by_lesson = 3;
 	SET @li_sample_type_sid_user_count = 4;
+	SET @li_sample_type_sid_lesson_in_progress_draw = 5; 
+	SET @li_sample_type_sid_step_num = 6;
+	SET @li_sample_type_sid_lesson_completed_draw = 7; 
 
 	INSERT INTO #sample_type
 	VALUES
@@ -106,6 +123,9 @@ BEGIN
 	, (@li_sample_type_sid_lesson_count_by_course, N'Lesson Count By Course')
 	, (@li_sample_type_sid_step_count_by_lesson, N'Step Count By Lesson')
 	, (@li_sample_type_sid_user_count, N'User Count')
+	, (@li_sample_type_sid_lesson_in_progress_draw, N'Lesson in Progress Draw')
+	, (@li_sample_type_sid_step_num, N'Lesson Step Number')
+	, (@li_sample_type_sid_lesson_completed_draw, N'Lesson Completed Draw')
 	;
 
 	IF @ai_debug_level > 1
@@ -149,7 +169,8 @@ BEGIN
 	Create sampled number of courses
 	******************************************************************************/
 	INSERT INTO #course_hdr(course_sid, course_id)
-	SELECT n, CONCAT(N'C', n)
+	SELECT	n
+	,		CONCAT(N'C', n)
 	FROM dbo.GetNums
 	(
 	   1
@@ -178,10 +199,10 @@ BEGIN
 	)
 	SELECT
 		@li_sample_type_sid_lesson_count_by_course
-	,	n
+	,	ROW_NUMBER() OVER (ORDER BY course_sid)
 	,	@ai_min_lessons_per_course
 	,	@ai_max_lessons_per_course
-	FROM dbo.GetNums(1, (SELECT COUNT(*) FROM #course_hdr))
+	FROM #course_hdr
 	;
 
 	EXECUTE dbo.p_get_samples 
@@ -252,17 +273,10 @@ BEGIN
 	)
 	SELECT
 		@li_sample_type_sid_step_count_by_lesson
-	,	n
+	,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid)
 	,	@ai_min_steps_per_lesson
 	,	@ai_max_steps_per_lesson
-	FROM dbo.GetNums
-	(
-		1, 
-		(
-			SELECT COUNT(*) 
-			FROM #lesson_hdr
-		)
-	)
+	FROM #lesson_hdr
 	;
 
 	EXECUTE dbo.p_get_samples
@@ -387,7 +401,7 @@ BEGIN
 	END;	
 
 	/******************************************************************************
-	Created sampled number of users
+	Create sampled number of users
 	******************************************************************************/
 	INSERT INTO #user_hdr
 	(
@@ -413,6 +427,69 @@ BEGIN
 		SELECT user_sid, user_id FROM #user_hdr
 	END;
 
+	/******************************************************************************
+	For each user, course, and lesson, make a draw to determine whether
+	that user is in progress for that course and lesson
+	******************************************************************************/
+	INSERT INTO #sample
+	(
+		sample_type_sid
+	,	sample_sid 
+	,	min_val
+	,	max_val 
+	)
+	SELECT 
+		@li_sample_type_sid_lesson_in_progress_draw
+	,	ROW_NUMBER() OVER (ORDER BY LH.course_sid, LH.lesson_sid, UH.user_sid)
+	,	1
+	,	100
+	FROM #lesson_hdr AS LH
+		CROSS JOIN #user_hdr AS UH
+
+	EXECUTE dbo.p_get_samples 
+		@as_sample_table = @ls_sample_table_name 
+	,	@ai_sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw
+	,	@ai_debug_level = 0
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ lesson in progress draw made';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw; 
+	END;
+	
+	UPDATE #sample 
+	SET sample_val = 
+		CASE 
+			WHEN sample_val <= @li_probability_lesson_in_progress_rounded
+				THEN 1
+			ELSE	
+				0
+		END 
+	WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw	
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ draw converted to binary decision';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw; 
+	END;
+	/******************************************************************************
+	For each user, course, and lesson, if the previous draw determined that
+	the user is in progress for that course and lesson, sample the step_num
+	the user is on. Note that unlike the other sampled values in this procedure,
+	the bounds are set on a per course/user basis. That is, different courses
+	and lessons have different numbers of steps so we can't set a max value 
+	uniformly (without compromising uniform sampling) 
+	******************************************************************************/
+
+
+	/******************************************************************************
+	For each user, course, and lesson, make a draw to determine whether
+	that user has previously completed that course and lesson
+	******************************************************************************/
+		
+	
 
 
 END;	
