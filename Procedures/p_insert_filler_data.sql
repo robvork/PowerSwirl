@@ -239,6 +239,37 @@ BEGIN
 		SELECT '#course_dtl';
 		SELECT * FROM #course_dtl;
 	END;
+	
+	/******************************************************************************
+	For each new lesson, sample a number of steps
+	******************************************************************************/
+	INSERT INTO #sample 
+	(
+		sample_type_sid
+	,	sample_sid
+	,	min_val
+	,	max_val 
+	)
+	SELECT
+		@li_sample_type_sid_step_count_by_lesson
+	,	n
+	,	@ai_min_steps_per_lesson
+	,	@ai_max_steps_per_lesson
+	FROM dbo.GetNums
+	(
+		1, 
+		(
+			SELECT COUNT(*) 
+			FROM #lesson_hdr
+		)
+	)
+	;
+
+	EXECUTE dbo.p_get_samples
+		@as_sample_table = @ls_sample_table_name 
+	,	@ai_sample_type_sid = @li_sample_type_sid_step_count_by_lesson
+	,	@ai_debug_level = 0
+	;
 
 
 	/*
