@@ -58,7 +58,7 @@ GO
 
 CREATE TABLE dbo.user_hdr
 (
-	user_sid SID NOT NULL IDENTITY(1, 1),
+	user_sid SID NOT NULL,
 	user_id ID NOT NULL
 );
 

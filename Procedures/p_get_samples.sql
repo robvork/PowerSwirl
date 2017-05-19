@@ -28,7 +28,7 @@ BEGIN
 	CONCAT 
 	(
 	 N'UPDATE ', @as_sample_table, N' 
-	   SET sample_val = min_val + (ABS(CHECKSUM(NEWID())) % (max_val - min_val) + 1)
+	   SET sample_val = min_val + (ABS(CHECKSUM(NEWID())) % (max_val - min_val + 1))
 	   WHERE sample_type_sid = ', @ai_sample_type_sid, N'
 	   ;
 	  ' 

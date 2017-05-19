@@ -209,7 +209,7 @@ BEGIN
 	SELECT 
 		course_sid 
 	,	n
-	,	CONCAT(N'C', course_sid, N'L', n)
+	,	CONCAT(N'C', course_sid, N' L', n)
 	FROM #course_hdr AS CH
 	INNER JOIN #sample AS S
 		ON CH.course_sid = S.sample_sid
@@ -271,12 +271,150 @@ BEGIN
 	,	@ai_debug_level = 0
 	;
 
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ number of steps sampled';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_step_count_by_lesson; 
+	END;	
 
+
+	/******************************************************************************
+	For each step count sampled, create the steps
+	******************************************************************************/
 	/*
-		Sample number of courses C with min_C and max_C
-		For each course, sample a number of lessons L with min_L and max_L
-		For each lesson, sample a number of steps S with min_S and max_S
+		Since #sample does not contain any reference to course_sid and lesson_sid,
+		and since we created one step count sample for each combination of course_sid
+		and lesson_sid, we need a way to make the correspondence
+		(course_sid, lesson_sid) -> <step_count>.
+
+		We do this as follows:
+		(course_sid, lesson_sid) -> sample_sid -> <step_count>, 
+		where <step_count> is the value of column sample_val in #sample. 
+
+		We do this by imposing an arbitrary row numbering on the collection 
+		of (course_sid, lesson_sid) pairs sorting by course_sid, then lesson_sid,
+		in ascending order for each column. It's intuitively true that the order
+		doesn't matter here because each of the step counts is independent of all
+		the others and the distribution is the same. 
 	*/
+	WITH course_lesson_to_sample_sid_map
+	AS
+	(
+		SELECT 
+			course_sid
+		,	lesson_sid 
+		,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid) AS sample_sid
+		FROM #lesson_hdr	
+	)
+	INSERT INTO #lesson_dtl
+	(
+		course_sid
+	,	lesson_sid 
+	,	step_num 
+	,	step_prompt
+	,	requires_input_flag
+	,	execute_code_flag
+	,	store_var_flag 
+	)
+	SELECT 
+		LH.course_sid 
+	,	LH.lesson_sid 
+	,	n
+	,	CONCAT
+		(
+			N'C'
+			, LH.course_sid
+			, N' L'
+			, LH.lesson_sid
+			, N' S'
+			, n
+		) 
+	,	0
+	,	0
+	,	0
+	FROM #lesson_hdr AS LH
+		INNER JOIN course_lesson_to_sample_sid_map AS CL2S
+			ON LH.course_sid = CL2S.course_sid
+			   AND
+			   LH.lesson_sid = CL2S.lesson_sid
+		INNER JOIN #sample AS S
+			ON CL2S.sample_sid = S.sample_sid
+			   AND 
+			   S.sample_type_sid = @li_sample_type_sid_step_count_by_lesson
+		CROSS APPLY dbo.GetNums(1, S.sample_val)
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#lesson_dtl : values set';
+		SELECT course_sid
+		,	   lesson_sid
+		,	   step_num
+		,	   step_prompt 
+		FROM #lesson_dtl;
+
+		SELECT '#lesson_dtl : all values';
+		SELECT * FROM #lesson_dtl;
+	END;
+
+	/******************************************************************************
+	Sample a number of users
+	******************************************************************************/
+	INSERT INTO #sample 
+	(
+		 sample_type_sid
+	,	 sample_sid
+	,	 min_val 
+	,	 max_val 
+	)
+	SELECT 
+		 @li_sample_type_sid_user_count
+	,	 1
+	,	 @ai_min_users
+	,	 @ai_max_users
+	;
+
+	EXECUTE dbo.p_get_samples
+		@as_sample_table = @ls_sample_table_name 
+	,	@ai_sample_type_sid = @li_sample_type_sid_user_count
+	,	@ai_debug_level = 0
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ number of users sampled';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_user_count; 
+	END;	
+
+	/******************************************************************************
+	Created sampled number of users
+	******************************************************************************/
+	INSERT INTO #user_hdr
+	(
+		user_sid
+	,	user_id
+	)
+	SELECT 
+		n
+	,	CONCAT(N'user', n)
+	FROM dbo.GetNums
+	(
+		1
+	,	(
+			SELECT sample_val 
+			FROM #sample 
+			WHERE sample_type_sid = @li_sample_type_sid_user_count
+		)
+	);
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#user_hdr'; 
+		SELECT user_sid, user_id FROM #user_hdr
+	END;
+
+
+
 END;	
 GO
 
@@ -285,5 +423,10 @@ EXEC dbo.p_insert_filler_data
 ,	@ai_min_courses = 3
 ,	@ai_min_lessons_per_course = 2
 ,	@ai_max_lessons_per_course = 5
-,	@ai_max_courses = 8; 
+,	@ai_min_steps_per_lesson = 5
+,	@ai_max_steps_per_lesson = 25
+,	@ai_max_courses = 8
+,	@ai_min_users = 3
+,	@ai_max_users = 10
+; 
 
