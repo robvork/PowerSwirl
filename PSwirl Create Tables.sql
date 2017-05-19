@@ -50,18 +50,6 @@ CREATE TABLE dbo.lesson_dtl
 	PRIMARY KEY(course_sid, lesson_sid, step_num)
 );
 
-IF OBJECT_ID('dbo.Nums', 'U') IS NOT NULL
-	DROP TABLE dbo.Nums; 
-GO
-
-CREATE TABLE [dbo].[Nums](
-	[n] [int] NOT NULL,
- CONSTRAINT [PK_Nums] PRIMARY KEY CLUSTERED 
-(
-	[n] ASC
-)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-) ON [PRIMARY]
-
 GO
 
 IF OBJECT_ID('dbo.user_hdr', 'U') IS NOT NULL

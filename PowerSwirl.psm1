@@ -746,9 +746,6 @@ function Start-PowerSwirl
     ,   [String]
         $User
 
-    ,   [System.Security.SecureString]
-        $Password
-
     ,   [String] 
         $CourseID
 
@@ -759,15 +756,75 @@ function Start-PowerSwirl
         $Step
     )
 
-    if($ServerInstance -eq $null -or 
-       $Database -eq $null)
+    Write-Verbose "Validating parameters and reprompting for input whenever necessary"
+    do
     {
-        $ServerInstance = Read-SQLServerInstance
-        $Database = Read-SQLServerDatabase -SQLServerInstance $ServerInstance
-    }
+        try
+        {
+            Write-Verbose "Validating ServerInstance..."
+            Test-SQLServerInstance $ServerInstance
+            Write-Verbose "ServerInstance valid"
+            break
+        }
+        catch
+        {
+            Write-Verbose "ServerInstance invalid. Getting new value"
+            Write-RetryPrompt -Message $_.Exception.Message
+            $ServerInstance = Read-SQLServerInstance
+        }
+    } while($true) 
+
+    do
+    {
+        try
+        {
+            Write-Verbose "Validating Database"
+            Test-SQLServerDatabase -ServerInstance $ServerInstance -Database $Database
+            Write-Verbose "Database valid"
+            break
+        }
+        catch
+        {
+            Write-Verbose "Database invalid. Getting new value"
+            Write-RetryPrompt -Message $_.Exception.Message 
+            $Database = Read-SQLServerDatabase
+        }
+    } while ($true)
+
+    do 
+    {
+        try
+        {
+            Write-Verbose "Validating user"
+            Test-PSwirlUser -PSwirlUser $User
+            Write-Verbose "User valid" 
+            break
+        }
+        catch
+        {
+            Write-Verbose "User invalid. Getting new value"
+            Write-RetryPrompt -Message $_.Exception.Message 
+            $User = Read-PSwirlUser
+        }
+    } while ($true)
+    
+    
+  
 
 
 
+}
+
+function Write-RetryPrompt 
+{
+    param
+    (
+        [String] $Message
+    ,   [String] $InformationVariable
+    )
+
+    Write-Information -MessageData $Message -InformationAction Continue
+    Write-Information -MessageData "Please try again." -InformationAction Continue
 }
 
 function Read-SQLServerInstance
@@ -779,16 +836,29 @@ function Read-SQLServerInstance
         .DESCRIPTION
         Write a prompt for SQL Server instance name to information stream and return the results
     #>
+
+    do
+    {
+        $ServerInstance = Read-SQLServerInstance
+        try
+        {
+            Test-SQLServerInstance -ServerInstance $ServerInstance
+            $ServerInstanceIsValid = $true 
+        }
+        catch
+        {
+            $Message = $_.Exception.Message 
+            Write-RetryPrompt -Message $Message 
+                
+            $ServerInstanceIsValid = $false 
+        }
+    } while (-not $ServerInstanceIsValid)
+
+    Write-Output $ServerInstance
 }
 
 function Read-SQLServerDatabase
 {
-    param
-    (
-        [String] 
-        $ServerInstance
-    )
-
     <#
         .SYNOPSIS
         Get SQL Server database from user
@@ -796,88 +866,34 @@ function Read-SQLServerDatabase
         .DESCRIPTION
         Write a prompt for SQL Server database given an instance name that has already been specified
     #>
-
-}
-
-function Test-SQLServerConnection
-{
-    <#
-        .SYNOPSIS
-        Test whether the SQL Server instance and database are valid. 
-
-        .DESCRIPTION
-        First test whether the SQL Server instance is valid by checking whether system-defined tables exist for the instance name.
-        If this passes, then test that SQL Server instance with the specified database
-    #>
-
     param
     (
-        [String]
+        [String] 
         $ServerInstance
-
-    ,   [String]
-        $Database
     )
 
-    try
+    do
     {
+        $Database = Read-SQLServerDatabase -ServerInstance $ServerInstance
         try
         {
-            $ConnectionString = "Server=$ServerInstance;Database=master;Integrated Security=True"
-            Test-SQLServerConnectionString $ConnectionString
+            Test-SQLServerDatabase -ServerInstance $ServerInstance -Database $Database
+            $DatabaseIsValid = $true 
         }
         catch
         {
-            Write-Error -Message "Invalid SQL Server Instance `"$ServerInstance`"" -Exception $_.Exception 
+            $Message = $_.Exception.Message 
+            Write-RetryPrompt -Message $Message 
+                
+            $DatabaseIsValid = $false 
         }
+    } while (-not $DatabaseIsValid)
 
-        try
-        {
-            $ConnectionString = "Server=$ServerInstance;Database=$Database;Integrated Security=True"
-            Test-SQLServerConnectionString $ConnectionString
-        }
-        catch
-        {
-            Write-Error -Message "Invalid SQL Server Database `"$Database`" for SQL Server instance $ServerInstance" -Exception $_.Exception 
-        }
-        
-    }
-    catch
-    {
-        Write-Error -Category InvalidArgument -Message $_.Exception.Message -Exception $_.Exception
-    }
-}
-
-function Test-SQLServerConnectionString
-{
-    <#
-        .SYNOPSIS
-        Test a SQL server connection string
-
-        .DESCRIPTION
-        Test a System.Data.SqlClient.SqlConnection SQL Server connection string by opening and closing a connection
-        with the passed connection string. If something goes wrong, pass exception to caller for handling.
-    #>
-    param
-    (
-        [string]
-        $SQLServerConnectionString
-    )
-
-    try
-    {
-        $SQLServerConnection = [System.Data.SqlClient.SqlConnection] $ConnectionString
-        $SQLServerConnection.Open()
-        $SQLServerConnection.Close()
-    }
-    catch
-    {
-        Write-Error -Exception $_.Exception -Message "Connection string invalid" -Category InvalidArgument
-    }
+    Write-Output $Database
 
 }
 
-function Read-Credential
+function Read-PSwirlUser
 {
     <#
         .SYNOPSIS
@@ -886,14 +902,62 @@ function Read-Credential
         .DESCRIPTION
         Read a SQL Server login and password from user, storing the password as a SecureString tied to the user's Windows login and machine
     #>
+    [CmdletBinding()]
+    param
+    (
+        
+    )
 }
 
-function Test-Credential
+function Test-PSwirlUser
+{
+    param
+    (
+        [String]
+        $PSwirlUser 
+    )
+}
+
+function Read-PSwirlCourse
+{
+}
+
+function Test-PSwirlCourse
+{
+    param
+    (
+        $ServerInstance 
+    ,   $Database 
+    ,   $CourseID
+    )
+}
+
+function Read-PSwirlLesson
+{
+}
+
+function Test-PSwirlLesson
+{
+    param
+    (
+        $ServerInstance 
+    ,   $Database 
+    ,   $CourseID
+    ,   $LessonID
+    )
+}
+
+function Test-PSwirlLogin
 {
     <#
         .SYNOPSIS
         Test that user and password are valid for a given ServerInstance and Database
     #>
+
+    [CmdletBinding()]
+    param
+    (
+    )
 }
 
 function Get-CourseHeader
@@ -906,7 +970,7 @@ function Get-CourseHeader
         Get the PowerSwirl course headers. A course header record consists of a descriptive name and a numeric course sid. 
         The user sees the descriptive name, but the database processes the course sid. 
     #>
-
+    [CmdletBinding()]
     param
     (
         [string]
@@ -929,6 +993,10 @@ function Get-CourseDetail
         Get the PowerSwirl course details. A course detail record consists of the numeric lesson sids associated with a given
         course sid. The course detail record does not include the course sid because it is redundant.
     #>
+    [CmdletBinding()]
+    param
+    (
+    )
 }
 
 
@@ -942,6 +1010,10 @@ function Get-LessonHeader
         Get the PowerSwirl lesson headers. A lesson header record consists of numeric lesson sids and a descriptive name.
         The user sees the descriptive name, but the database processes the lesson sid.
     #>
+    [CmdletBinding()]
+    param
+    (
+    )
 }
 
 function Get-LessonDetail
@@ -955,9 +1027,13 @@ function Get-LessonDetail
         Each record corresponds to a single step in a lesson. The step_prompt and flag values are mandatory, but the solution and variable flags are mandatory
         if and only if the requires_input_flag and store_variable_flag flags are set to true, respectively. 
     #>
+    [CmdletBinding()]
+    param
+    (
+    )
 }
 
-function Write-Prompt
+function Write-LessonPrompt
 {
     <#
         .SYNOPSIS
@@ -1130,8 +1206,9 @@ Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
 Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
 
-
+<#
 Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
 Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"
 Export-ModuleMember -Function nxt
 Export-ModuleMember -Function Import-PowerSwirlLesson -Alias "impswl"
+#>
