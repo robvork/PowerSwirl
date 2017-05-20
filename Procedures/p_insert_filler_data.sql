@@ -61,6 +61,36 @@ BEGIN
 
 		SET @ls_sample_table_name = N'#sample';
 
+		DROP TABLE IF EXISTS #course_to_sample;
+
+		CREATE TABLE #course_to_sample
+		(
+			course_sid BIGINT
+		,	sample_sid BIGINT
+		,	PRIMARY KEY(course_sid)
+		);
+
+		DROP TABLE IF EXISTS #course_lesson_to_sample; 
+
+		CREATE TABLE #course_lesson_to_sample
+		(
+			course_sid BIGINT 
+		,	lesson_sid BIGINT
+		,	sample_sid BIGINT
+		,	PRIMARY KEY(course_sid, lesson_sid)
+		);
+
+		DROP TABLE IF EXISTS #course_lesson_user_to_sample; 
+
+		CREATE TABLE #course_lesson_user_to_sample
+		(
+			course_sid BIGINT 
+		,	lesson_sid BIGINT
+		,	user_sid BIGINT
+		,	sample_sid BIGINT
+		,	PRIMARY KEY(course_sid, lesson_sid, user_sid)
+		);
+
 		DROP TABLE IF EXISTS #obj_type; 
 
 		CREATE TABLE #sample_type
@@ -190,7 +220,33 @@ BEGIN
 	/******************************************************************************
 	For each new course, sample a number of lessons
 	******************************************************************************/
-	INSERT INTO #sample 
+	INSERT INTO 
+		#course_to_sample
+	(
+		course_sid 
+	,	sample_sid
+	)
+	SELECT
+		course_sid
+	,	ROW_NUMBER() OVER 
+			(ORDER BY course_sid)
+	FROM
+		#course_hdr 
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#course_to_sample';
+		SELECT 
+			course_sid
+		,	sample_sid 
+		FROM 
+			#course_to_sample
+		;
+	END;
+	
+	INSERT INTO 
+		#sample 
 	(
 		sample_type_sid 
 	,	sample_sid
@@ -199,13 +255,15 @@ BEGIN
 	)
 	SELECT
 		@li_sample_type_sid_lesson_count_by_course
-	,	ROW_NUMBER() OVER (ORDER BY course_sid)
+	,	sample_sid 
 	,	@ai_min_lessons_per_course
 	,	@ai_max_lessons_per_course
-	FROM #course_hdr
+	FROM 
+		#course_to_sample
 	;
 
-	EXECUTE dbo.p_get_samples 
+	EXECUTE 
+		dbo.p_get_samples 
 		@as_sample_table = @ls_sample_table_name
 	,	@ai_sample_type_sid = @li_sample_type_sid_lesson_count_by_course
 	,	@ai_debug_level = 0
@@ -230,13 +288,16 @@ BEGIN
 	SELECT 
 		course_sid 
 	,	n
-	,	CONCAT(N'C', course_sid, N' L', n)
-	FROM #course_hdr AS CH
-	INNER JOIN #sample AS S
-		ON CH.course_sid = S.sample_sid
+	,	CONCAT(N'C', C2S.course_sid, N' L', n)
+	FROM 
+		#sample AS S
+	INNER JOIN 
+		#course_to_sample AS C2S
+		ON S.sample_sid = C2S.sample_sid
 		   AND 
 		   S.sample_type_sid = @li_sample_type_sid_lesson_count_by_course
-	CROSS APPLY dbo.GetNums(1, S.sample_val)
+	CROSS APPLY 
+		dbo.GetNums(1, S.sample_val)
 	;
 
 	IF @ai_debug_level > 1
@@ -264,7 +325,34 @@ BEGIN
 	/******************************************************************************
 	For each new lesson, sample a number of steps
 	******************************************************************************/
-	INSERT INTO #sample 
+	INSERT INTO 
+		#course_lesson_to_sample 
+	(
+		course_sid 
+	,	lesson_sid 
+	,	sample_sid 
+	)
+	SELECT 
+		course_sid 
+	,	lesson_sid 
+	,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid)
+	FROM #lesson_hdr
+	;
+	
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#course_lesson_to_sample';
+		SELECT 
+			course_sid
+		,	lesson_sid
+		,	sample_sid 
+		FROM 
+			#course_lesson_to_sample
+		;
+	END;
+
+	INSERT INTO 
+		#sample 
 	(
 		sample_type_sid
 	,	sample_sid
@@ -485,7 +573,39 @@ BEGIN
 	and lessons have different numbers of steps so we can't set a max value 
 	uniformly (without compromising uniform sampling) 
 	******************************************************************************/
-
+	--WITH course_lesson_bounds AS
+	--(
+	--	SELECT course_sid 
+	--	,	   lesson_sid
+	--	,	   1 AS min_val
+	--	,	   COUNT(step_num) AS max_val 
+	--	FROM #lesson_dtl 
+	--	GROUP BY course_sid, lesson_sid 
+	--),
+	--course_lesson_user_to_sample AS
+	--(
+	--	SELECT course_sid
+	--,		   lesson_sid 
+	--,		   user_sid 
+	--	FROM 
+	--)
+	--INSERT INTO #sample 
+	--(
+	--	sample_type_sid 
+	--,	sample_sid
+	--,	min_val 
+	--,	max_val 
+	--)
+	--SELECT 
+	--	@li_sample_type_sid_step_num
+	--,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid, user_sid)
+	--,	CLB.min_val
+	--,	CLB.max_val
+	--FROM course_lesson_bounds AS CLB
+	--	 CROSS JOIN #user_hdr AS UH
+	--	 INNER JOIN #sample AS S
+			
+	
 
 	/******************************************************************************
 	For each user, course, and lesson, make a draw to determine whether
