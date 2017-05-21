@@ -361,10 +361,10 @@ BEGIN
 	)
 	SELECT
 		@li_sample_type_sid_step_count_by_lesson
-	,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid)
+	,	sample_sid 
 	,	@ai_min_steps_per_lesson
 	,	@ai_max_steps_per_lesson
-	FROM #lesson_hdr
+	FROM #course_lesson_to_sample
 	;
 
 	EXECUTE dbo.p_get_samples
@@ -399,15 +399,6 @@ BEGIN
 		doesn't matter here because each of the step counts is independent of all
 		the others and the distribution is the same. 
 	*/
-	WITH course_lesson_to_sample_sid_map
-	AS
-	(
-		SELECT 
-			course_sid
-		,	lesson_sid 
-		,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid) AS sample_sid
-		FROM #lesson_hdr	
-	)
 	INSERT INTO #lesson_dtl
 	(
 		course_sid
@@ -435,7 +426,7 @@ BEGIN
 	,	0
 	,	0
 	FROM #lesson_hdr AS LH
-		INNER JOIN course_lesson_to_sample_sid_map AS CL2S
+		INNER JOIN #course_lesson_to_sample AS CL2S
 			ON LH.course_sid = CL2S.course_sid
 			   AND
 			   LH.lesson_sid = CL2S.lesson_sid
@@ -516,9 +507,91 @@ BEGIN
 	END;
 
 	/******************************************************************************
+	For each combination of course, lesson, and user, 
+	create a row in user_course with default values for flags
+	******************************************************************************/
+	INSERT INTO 
+		#user_course
+	(
+		user_sid 
+	,	course_sid
+	,	lesson_sid 
+	,	step_num 
+	,	lesson_in_progress_flag
+	,	lesson_completed_flag
+	)
+	SELECT 
+		user_sid 
+	,	course_sid 
+	,	lesson_sid
+	,	1
+	,	0
+	,	0
+	FROM 
+		#user_hdr
+	CROSS JOIN 
+		#lesson_hdr 
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#user_course';
+		SELECT 
+			user_sid
+		,	course_sid 
+		,	lesson_sid 
+		,	step_num
+		,	lesson_in_progress_flag 
+		,	lesson_completed_flag 
+		FROM 
+			#user_course
+		;
+	END;
+
+	/******************************************************************************
 	For each user, course, and lesson, make a draw to determine whether
 	that user is in progress for that course and lesson
 	******************************************************************************/
+	INSERT INTO 
+		#course_lesson_user_to_sample
+	(
+		course_sid 
+	,	lesson_sid 
+	,	user_sid 
+	,	sample_sid
+	)
+	SELECT 
+		course_sid
+	,	lesson_sid 
+	,	user_sid 
+	,	ROW_NUMBER() OVER 
+			(
+				ORDER BY 
+					course_sid
+				  , lesson_sid
+				  , user_sid
+			)
+	FROM 
+		#lesson_hdr
+	CROSS JOIN 
+		#user_hdr
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#course_lesson_user_to_sample';
+		
+		SELECT 
+			course_sid 
+		,	lesson_sid 
+		,	user_sid 
+		,	sample_sid 
+		FROM 
+			#course_lesson_user_to_sample
+		;
+	END;
+	
+	
 	INSERT INTO #sample
 	(
 		sample_type_sid
@@ -528,11 +601,10 @@ BEGIN
 	)
 	SELECT 
 		@li_sample_type_sid_lesson_in_progress_draw
-	,	ROW_NUMBER() OVER (ORDER BY LH.course_sid, LH.lesson_sid, UH.user_sid)
+	,	sample_sid
 	,	1
 	,	100
-	FROM #lesson_hdr AS LH
-		CROSS JOIN #user_hdr AS UH
+	FROM #course_lesson_user_to_sample
 
 	EXECUTE dbo.p_get_samples 
 		@as_sample_table = @ls_sample_table_name 
@@ -564,6 +636,44 @@ BEGIN
 		SELECT '#sample w/ draw converted to binary decision';
 		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw; 
 	END;
+
+	/******************************************************************************
+	Update the lesson_in_progress flag accordingly
+	******************************************************************************/
+	UPDATE U 
+	SET 
+		U.lesson_in_progress_flag = S.sample_val
+	FROM #user_course AS U
+	INNER JOIN 
+		#course_lesson_user_to_sample AS CLU2S
+			ON 
+			   U.user_sid = CLU2S.user_sid
+				AND 
+			   U.course_sid = CLU2S.course_sid 
+			    AND
+			   U.lesson_sid = CLU2S.lesson_sid
+	INNER JOIN
+		#sample AS S
+			ON 
+			   CLU2S.sample_sid = S.sample_sid
+			    AND 
+			   S.sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw
+	;
+
+	IF @ai_debug_level > 0
+	BEGIN
+		SELECT '#user_course with lesson_in_progress updated';
+
+		SELECT 
+			course_sid 
+		,	lesson_sid 
+		,	user_sid 
+		,	lesson_in_progress_flag
+		FROM 
+			#user_course
+		;
+	END;
+
 
 	/******************************************************************************
 	For each user, course, and lesson, if the previous draw determined that
