@@ -793,6 +793,7 @@ function Start-PowerSwirl
             $Database = Read-SQLServerDatabase
         }
     } while ($true)
+    
 
     do 
     {
@@ -819,7 +820,7 @@ function Start-PowerSwirl
     }
     catch
     {
-        Write-Verbose "Course not valid. Prompting user for selection"
+        Write-Verbose "Course not valid. Prompting user with available courses and requesting selection"
         $Courses = Get-CourseHeader -ServerInstance $ServerInstance -Database $Database 
         do 
         {
@@ -839,7 +840,34 @@ function Start-PowerSwirl
         } while ($true)
     }
     
-  
+    try
+    {
+        Write-Verbose "Validating lesson"
+        Test-PSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseID $CourseID -LessonID $LessonID
+        Write-Verbose "Lesson valid"
+    }
+    catch
+    {
+        Write-Verbose "Lesson not valid. Prompting user with available lessons for chosen course and requesting selection"
+        $LessonsInCourse = Get-CourseDetail -ServerInstance $ServerInstance -Database $Database 
+       
+        do 
+        {
+            try
+            {
+                Write-CourseHeader $Courses 
+                $Selection = Read-MenuSelection 
+                Test-MenuSelection -ChoiceObjects $CourseList 
+                 
+                break
+            }
+            catch
+            {
+                Write-Verbose "Course selection invalid. Getting new value"
+                Write-RetryPrompt -Message $_.Exception.Message 
+            }
+        } while ($true)
+    }
 
 
 

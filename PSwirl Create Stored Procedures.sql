@@ -121,7 +121,8 @@ GO
 CREATE PROCEDURE dbo.p_get_lessons
 (
 	  @ai_debug_level INT = 0
-	, @ai_course_sid SID
+	, @ai_course_sid SID = NULL
+	, @as_course_id ID = NULL
 )
 AS
 /*******************************************************************************
@@ -149,7 +150,14 @@ Comment :
 Initial submission
 *******************************************************************************/
 BEGIN
-	
+	IF @ai_course_sid IS NULL
+		SET @ai_course_sid = 
+		(
+			SELECT course_sid 
+			FROM dbo.course_hdr 
+			WHERE course_id = @as_course_id
+		);
+
 	SELECT ROW_NUMBER() OVER (PARTITION BY c_dtl.course_sid ORDER BY l_hdr.lesson_id) AS choice
 		   , c_dtl.lesson_sid
 		   , l_hdr.lesson_id
@@ -159,7 +167,6 @@ BEGIN
 			   AND
 			   c_dtl.lesson_sid = l_hdr.lesson_sid
 	WHERE c_dtl.course_sid = @ai_course_sid
-	ORDER BY l_hdr.lesson_id
 	;
 
 END
