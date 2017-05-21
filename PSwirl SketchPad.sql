@@ -59,3 +59,31 @@ SELECT * FROM lesson_hdr;
 SELECT * FROM course_dtl;
 SELECT * FROM lesson_dtl; 
 
+DECLARE @ls_current_table SYSNAME;
+DECLARE @ls_sql NVARCHAR(MAX);
+
+DECLARE table_cursor CURSOR LOCAL FAST_FORWARD FOR
+SELECT name FROM sys.tables; 
+
+OPEN table_cursor;
+
+WHILE 0 = 0
+BEGIN
+	FETCH NEXT FROM table_cursor
+	INTO @ls_current_table;
+
+	IF @@FETCH_STATUS <> 0
+		BREAK;
+
+	SET @ls_sql = 
+	CONCAT
+	(
+		N'SELECT ''', @ls_current_table, N''';
+		SELECT * FROM ', @ls_current_table, N';'
+	);
+
+	EXEC(@ls_sql);
+END;
+
+CLOSE table_cursor; 
+DEALLOCATE table_cursor; 

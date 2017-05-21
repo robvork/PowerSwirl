@@ -28,12 +28,16 @@ BEGIN
 	DECLARE @li_sample_type_sid_lesson_in_progress_draw TINYINT;
 	DECLARE @li_sample_type_sid_lesson_completed_draw TINYINT;
 	DECLARE @li_sample_type_sid_step_num TINYINT;
+	DECLARE @li_precedence_idx INT;
+	DECLARE @li_num_tables_to_process INT;
 	
 	DECLARE @li_probability_lesson_completed_rounded TINYINT;
 	DECLARE @li_probability_lesson_in_progress_rounded TINYINT;
 
 	DECLARE @ls_sample_table_name SYSNAME;
 	DECLARE @ls_curr_step NVARCHAR(100);
+	DECLARE @ls_current_table_name SYSNAME;
+	DECLARE @ls_sql NVARCHAR(MAX);
 
 	/******************************************************************************
 	Initialize local variables
@@ -98,7 +102,15 @@ BEGIN
 			sample_type TINYINT NOT NULL
 		,	sample_descr NVARCHAR(100) NOT NULL
 		,	PRIMARY KEY(sample_type)
-		)
+		);
+
+		DROP TABLE IF EXISTS #target_table; 
+
+		CREATE TABLE #table
+		(
+			precedence_rank INT PRIMARY KEY
+		,	table_name SYSNAME 
+		);
 
 		/*
 			Create temp tables with identical schemas to those found in the database
@@ -133,6 +145,19 @@ BEGIN
 			FROM dbo.user_pause_state;
 		END
 	END
+
+	/******************************************************************************
+	Insert table names
+	******************************************************************************/
+	INSERT INTO #table 
+	VALUES 
+	  (1, N'course_hdr')
+	, (2, N'lesson_hdr')
+	, (3, N'user_hdr')
+	, (4, N'lesson_dtl')
+	, (5, N'course_dtl')
+	, (6, N'user_course')
+	;
 
 	/******************************************************************************
 	Insert object types 
@@ -790,7 +815,7 @@ BEGIN
 		END
 	,	min_val = 0
 	,	max_val = 1
-	WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw	
+	WHERE sample_type_sid = @li_sample_type_sid_lesson_completed_draw
 	;
 
 	IF @ai_debug_level > 1
@@ -830,12 +855,60 @@ BEGIN
 			course_sid 
 		,	lesson_sid 
 		,	user_sid 
-		,	lesson_in_progress_flag
+		,	lesson_completed_flag
 		FROM 
 			#user_course
 		;
 	END;
 
+	/******************************************************************************
+	Insert all data
+	******************************************************************************/
+	SET @li_precedence_idx = 1;
+	SET @li_num_tables_to_process = (SELECT COUNT(*) FROM #table);
+
+	WHILE @li_precedence_idx <= @li_num_tables_to_process
+	BEGIN
+		SET @ls_current_table_name = 
+		(
+			SELECT table_name 
+			FROM #table 
+			WHERE precedence_rank = @li_precedence_idx
+		);
+
+		SET @ls_sql = 
+		CONCAT 
+		(
+		   N'TRUNCATE TABLE ', @ls_current_table_name, N';
+		   INSERT INTO dbo.', @ls_current_table_name, N'
+		   SELECT * FROM #', @ls_current_table_name, N'
+		   ;'
+		);
+
+		IF @ai_debug_level > 0
+			PRINT CONCAT('DSQL: ', @ls_sql);
+
+		EXEC(@ls_sql);
+
+		IF @ai_debug_level > 1
+		BEGIN
+			SET @ls_sql = 
+			CONCAT 
+			(
+				N'SELECT ''', @ls_current_table_name, N''';
+				SELECT * FROM ', @ls_current_table_name, N';'
+			);
+		END;
+
+		IF @ai_debug_level > 0
+			PRINT CONCAT('DSQL: ', @ls_sql);
+
+		EXEC(@ls_sql);
+
+
+		SET @li_precedence_idx += 1;
+	END;
+	
 
 END;	
 GO
