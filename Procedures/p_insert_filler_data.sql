@@ -683,46 +683,158 @@ BEGIN
 	and lessons have different numbers of steps so we can't set a max value 
 	uniformly (without compromising uniform sampling) 
 	******************************************************************************/
-	--WITH course_lesson_bounds AS
-	--(
-	--	SELECT course_sid 
-	--	,	   lesson_sid
-	--	,	   1 AS min_val
-	--	,	   COUNT(step_num) AS max_val 
-	--	FROM #lesson_dtl 
-	--	GROUP BY course_sid, lesson_sid 
-	--),
-	--course_lesson_user_to_sample AS
-	--(
-	--	SELECT course_sid
-	--,		   lesson_sid 
-	--,		   user_sid 
-	--	FROM 
-	--)
-	--INSERT INTO #sample 
-	--(
-	--	sample_type_sid 
-	--,	sample_sid
-	--,	min_val 
-	--,	max_val 
-	--)
-	--SELECT 
-	--	@li_sample_type_sid_step_num
-	--,	ROW_NUMBER() OVER (ORDER BY course_sid, lesson_sid, user_sid)
-	--,	CLB.min_val
-	--,	CLB.max_val
-	--FROM course_lesson_bounds AS CLB
-	--	 CROSS JOIN #user_hdr AS UH
-	--	 INNER JOIN #sample AS S
-			
-	
+	WITH course_lesson_bounds AS
+	(
+		SELECT course_sid 
+		,	   lesson_sid
+		,	   MIN(step_num) AS min_val
+		,	   MAX(step_num) AS max_val 
+		FROM #lesson_dtl 
+		GROUP BY course_sid, lesson_sid 
+	)
+	INSERT INTO #sample 
+	(
+		sample_type_sid 
+	,	sample_sid
+	,	min_val 
+	,	max_val 
+	)
+	SELECT 
+		@li_sample_type_sid_step_num
+	,	CLU2S.sample_sid 
+	,	CLB.min_val
+	,	CASE 
+			-- If the course/lesson is not in progress, use an upper bound
+			-- equal to the lower bound to force the lower bound as the sample
+			WHEN UC.lesson_in_progress_flag = 0 
+				THEN CLB.min_val
+			ELSE 
+				CLB.max_val
+		END
+	FROM 
+		-- Use the same sample sids but for a different sample_type_sid
+		#course_lesson_user_to_sample AS CLU2S
+	INNER JOIN 
+		-- Access #user_course to see if lesson is in progress
+		#user_course AS UC
+			ON 
+				CLU2S.course_sid = UC.course_sid 
+					AND
+				CLU2S.lesson_sid = UC.lesson_sid
+					AND
+				CLU2S.user_sid = UC.user_sid
+	INNER JOIN 
+		-- Get step bounds by matching course and lesson (independent of user)
+		course_lesson_bounds AS CLB
+			ON 
+				UC.course_sid = CLB.course_sid
+					AND
+				UC.lesson_sid = CLB.lesson_sid
+	;
 
+	EXECUTE dbo.p_get_samples
+		@as_sample_table = @ls_sample_table_name 
+	,	@ai_sample_type_sid = @li_sample_type_sid_step_num
+	,	@ai_debug_level = 0
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ step_num sampled for course/lesson/user combinations in
+				#user_course that have lesson_in_progress = 1'
+		;
+
+		SELECT * 
+		FROM #sample 
+		WHERE sample_type_sid = @li_sample_type_sid_step_num
+		;
+
+	END;
 	/******************************************************************************
 	For each user, course, and lesson, make a draw to determine whether
 	that user has previously completed that course and lesson
 	******************************************************************************/
-		
+	INSERT INTO #sample
+	(
+		sample_type_sid
+	,	sample_sid 
+	,	min_val
+	,	max_val 
+	)
+	SELECT 
+		@li_sample_type_sid_lesson_completed_draw
+	,	sample_sid
+	,	1
+	,	100
+	FROM #course_lesson_user_to_sample
+
+	EXECUTE dbo.p_get_samples 
+		@as_sample_table = @ls_sample_table_name 
+	,	@ai_sample_type_sid = @li_sample_type_sid_lesson_completed_draw
+	,	@ai_debug_level = 0
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ lesson completed draw made';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_completed_draw; 
+	END;
 	
+	UPDATE #sample 
+	SET sample_val = 
+		CASE 
+			WHEN sample_val <= @li_probability_lesson_completed_rounded
+				THEN 1
+			ELSE	
+				0
+		END
+	,	min_val = 0
+	,	max_val = 1
+	WHERE sample_type_sid = @li_sample_type_sid_lesson_in_progress_draw	
+	;
+
+	IF @ai_debug_level > 1
+	BEGIN
+		SELECT '#sample w/ draw converted to binary decision';
+		SELECT * FROM #sample WHERE sample_type_sid = @li_sample_type_sid_lesson_completed_draw; 
+	END;
+
+	/******************************************************************************
+	Update the lesson_completed flag accordingly
+	******************************************************************************/
+	UPDATE U 
+	SET 
+		U.lesson_completed_flag = S.sample_val
+	FROM #user_course AS U
+	INNER JOIN 
+		#course_lesson_user_to_sample AS CLU2S
+			ON 
+			   U.user_sid = CLU2S.user_sid
+				AND 
+			   U.course_sid = CLU2S.course_sid 
+			    AND
+			   U.lesson_sid = CLU2S.lesson_sid
+	INNER JOIN
+		#sample AS S
+			ON 
+			   CLU2S.sample_sid = S.sample_sid
+			    AND 
+			   S.sample_type_sid = @li_sample_type_sid_lesson_completed_draw 
+	;
+
+	IF @ai_debug_level > 0
+	BEGIN
+		SELECT '#user_course with lesson_completed updated';
+
+		SELECT 
+			course_sid 
+		,	lesson_sid 
+		,	user_sid 
+		,	lesson_in_progress_flag
+		FROM 
+			#user_course
+		;
+	END;
 
 
 END;	
