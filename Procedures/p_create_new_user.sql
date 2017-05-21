@@ -36,36 +36,30 @@ Initial submission
 *******************************************************************************/
 BEGIN
 	DECLARE @li_user_sid AS SID;
-	DECLARE @lb_user_exists AS BIT;
-	SET @li_user_sid = 
-	(
-		SELECT [user_sid] 
-		FROM dbo.user_hdr 
-		WHERE [user_id] = @as_user_id
-	);
-	
-	IF @li_user_sid IS NULL
-	BEGIN
-		SET @lb_user_exists = 0;
-	END
-	ELSE
-	BEGIN
-		SET @lb_user_exists = 1;
-	END
+	DECLARE @ls_error_msg NVARCHAR(200);
 
-	SELECT	 @li_user_sid AS [user_sid]
-		   , @lb_user_exists AS [user_exists]
-	;
+	BEGIN TRY
+		IF EXISTS(SELECT * FROM dbo.user_hdr WHERE user_id = @as_user_id)
+		BEGIN
+			RAISERROR(N'User ID already exists', 16, 1);
+		END;
+
+		INSERT INTO dbo.user_hdr 
+		(
+			user_sid
+		,	user_id 
+		)
+		SELECT 
+			(SELECT MAX(user_sid) + 1 FROM dbo.user_hdr)
+		,	@as_user_id
+		;
+
+		SELECT	 @li_user_sid AS [user_sid];
+	END TRY
+	BEGIN CATCH
+		SET @ls_error_msg = ERROR_MESSAGE();
+		
+		RAISERROR(@ls_error_msg, 16, 1);
+	END CATCH
 END
 GO
-
---INSERT INTO dbo.user_hdr([user_id])
---		VALUES (@as_user_id)
-
---		SET @li_user_sid = 
---		(
---			SELECT [user_sid]
---			FROM dbo.user_hdr
---			WHERE [user_id] = @as_user_id
---		);
---		;

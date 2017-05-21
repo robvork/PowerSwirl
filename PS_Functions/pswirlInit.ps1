@@ -5,7 +5,7 @@ function Read-SQLServerInstance
         Get SQL Server instance from user
     #>
 
-    $ServerInstance = Read-Host -Prompt "SQL Server instance"
+    $ServerInstance = Read-Host -Prompt "SQL Server instance name"
     Write-Output $ServerInstance
 }
 
@@ -16,7 +16,7 @@ function Read-SQLServerDatabase
         Get SQL Server database from user
     #>
 
-    $Database = Read-Host -Prompt "SQL Server database"
+    $Database = Read-Host -Prompt "Database name"
     Write-Output $Database 
 }
 
@@ -29,6 +29,7 @@ function Read-PSwirlUser
     $User = Read-Host -Prompt "PowerSwirl User"
     Write-Output $User 
 }
+
 
 function Test-PSwirlUser
 {
@@ -45,7 +46,7 @@ function Test-PSwirlUser
     )
 
     $Query = "EXECUTE dbo.p_get_user @as_user_id = '$User'"
-    $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
+    $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query
     if([bool]$TestResult.user_exists)
     {
         Write-Output $TestResult.user_sid 
@@ -57,3 +58,4 @@ function Test-PSwirlUser
 
 
 }
+
