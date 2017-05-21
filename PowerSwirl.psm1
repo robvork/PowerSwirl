@@ -817,21 +817,21 @@ function Start-PowerSwirl
     catch
     {
         Write-Verbose "Course not valid. Prompting user for selection"
-        $CourseList = Get-CourseHeader -ServerInstance $ServerInstance -Database $Database 
+        $Courses = Get-CourseHeader -ServerInstance $ServerInstance -Database $Database 
         do 
         {
             try
             {
-                $Choice = Read-P
+                Write-CourseHeader $Courses 
+                $Selection = Read-MenuSelection 
                 Test-MenuSelection -ChoiceObjects $CourseList 
                  
                 break
             }
             catch
             {
-                Write-Verbose "Course invalid. Getting new value"
+                Write-Verbose "Course selection invalid. Getting new value"
                 Write-RetryPrompt -Message $_.Exception.Message 
-                $User = Read-PSwirlUser
             }
         } while ($true)
     }
@@ -938,16 +938,22 @@ function Read-PSwirlUser
 
 function Read-MenuSelection
 {
+    $Selection = Read-Host -Prompt "Selection"
+    Write-Output $Selection 
+}
+
+function Write-CourseHeader
+{
     param
     (
-        $MenuObjects
+        $Courses
     )
 
-    foreach($MenuObjecti in $MenuObjects)
+    foreach($Course in $Courses)
     {
-        
+        $CourseLine = $Course.selection + " : " + $Course.course_id
+        Write-Information -MessageData $CourseLine
     }
-
 }
 
 function Test-PSwirlUser
@@ -1013,7 +1019,7 @@ function Test-MenuSelection
 
     if($MenuSelection -notin $MenuSelections)
     {
-        throw "$MenuSelection is not a valid choice"
+        throw "$MenuSelection is not a valid selection"
     }
 }
 
@@ -1036,6 +1042,11 @@ function Get-CourseHeader
     ,   [string]
         $Database
     )
+
+    $Query = "EXEC dbo.p_get_courses"
+    $Courses = Invoke-SqlCmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
+
+    Write-Output $Courses 
 
 
 }

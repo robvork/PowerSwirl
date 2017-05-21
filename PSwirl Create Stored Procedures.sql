@@ -104,7 +104,7 @@ Comment :
 Initial submission
 *******************************************************************************/
 BEGIN
-	SELECT ROW_NUMBER() OVER (ORDER BY course_id) AS choice
+	SELECT ROW_NUMBER() OVER (ORDER BY course_id) AS selection
 		 , course_id
 		 , course_sid 
 	FROM dbo.course_hdr
