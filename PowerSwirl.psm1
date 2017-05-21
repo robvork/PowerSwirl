@@ -808,6 +808,33 @@ function Start-PowerSwirl
         }
     } while ($true)
     
+    try
+    {
+        Write-Verbose "Validating course"
+        Test-PSwirlCourse -ServerInstance $ServerInstance -Database $Database -CourseID $CourseID
+        Write-Verbose "Course valid"
+    }
+    catch
+    {
+        Write-Verbose "Course not valid. Prompting user for selection"
+        $CourseList = Get-CourseHeader -ServerInstance $ServerInstance -Database $Database 
+        do 
+        {
+            try
+            {
+                $Choice = Read-P
+                Test-MenuSelection -ChoiceObjects $CourseList 
+                 
+                break
+            }
+            catch
+            {
+                Write-Verbose "Course invalid. Getting new value"
+                Write-RetryPrompt -Message $_.Exception.Message 
+                $User = Read-PSwirlUser
+            }
+        } while ($true)
+    }
     
   
 
@@ -909,6 +936,20 @@ function Read-PSwirlUser
     )
 }
 
+function Read-MenuSelection
+{
+    param
+    (
+        $MenuObjects
+    )
+
+    foreach($MenuObjecti in $MenuObjects)
+    {
+        
+    }
+
+}
+
 function Test-PSwirlUser
 {
     param
@@ -960,6 +1001,22 @@ function Test-PSwirlLogin
     )
 }
 
+function Test-MenuSelection
+{
+    param
+    (
+        [Object[]] $MenuObjects
+    ,   [int] $MenuSelection
+    )
+
+    $MenuSelections = $MenuObjects.Selection
+
+    if($MenuSelection -notin $MenuSelections)
+    {
+        throw "$MenuSelection is not a valid choice"
+    }
+}
+
 function Get-CourseHeader
 {
     <#
@@ -998,7 +1055,6 @@ function Get-CourseDetail
     (
     )
 }
-
 
 function Get-LessonHeader
 {
