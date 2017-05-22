@@ -1,8 +1,8 @@
-IF EXISTS (SELECT * FROM sys.procedures WHERE name = N'p_get_user') 
-	DROP PROCEDURE dbo.p_get_user;
+IF EXISTS (SELECT * FROM sys.procedures WHERE name = N'p_create_new_user') 
+	DROP PROCEDURE dbo.p_create_new_user;
 GO
 
-CREATE PROCEDURE dbo.p_get_user
+CREATE PROCEDURE dbo.p_create_new_user
 (
 	  @ai_debug_level INT = 0
 	, @as_user_id ID
@@ -10,10 +10,10 @@ CREATE PROCEDURE dbo.p_get_user
 AS
 /*******************************************************************************
 Procedure
-p_get_user
+p_create_new_user
 
 Description 
-Get user sid given a user id
+Creates a new user and returns its sid
 
 --------------------------------Interface-----------------------------------------
 Input Parameter(s)
@@ -54,7 +54,7 @@ BEGIN
 		,	@as_user_id
 		;
 
-		SELECT	 @li_user_sid AS [user_sid];
+		SELECT @li_user_sid AS [user_sid];
 	END TRY
 	BEGIN CATCH
 		SET @ls_error_msg = ERROR_MESSAGE();

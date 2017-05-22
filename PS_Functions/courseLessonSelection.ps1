@@ -3,11 +3,11 @@ function Write-RetryPrompt
     param
     (
         [String] $Message
-    ,   [String] $InformationVariable
+    ,   [String] $InformationAction
     )
 
-    Write-Information -MessageData $Message -InformationAction Continue
-    Write-Information -MessageData "Please try again." -InformationAction Continue
+    Write-Information -MessageData $Message -InformationAction $InformationAction
+    Write-Information -MessageData "Please try again." -InformationAction $InformationAction
 }
 
 function Read-MenuSelection
@@ -21,17 +21,31 @@ function Write-CourseHeaders
     param
     (
         $Courses
+    ,   [String] $InformationAction
     )
 
+    Write-Information -MessageData $Courses.Length -Tags CourseCount -InformationAction SilentlyContinue
     foreach($Course in $Courses)
     {
         $CourseLine = $Course.selection + " : " + $Course.course_id
-        Write-Information -MessageData $CourseLine
+        Write-Information -MessageData $CourseLine -Tags CourseLine -InformationAction $InformationAction
     }
 }
 
-function Read-PSwirlCourse
+function Write-LessonHeaders
 {
+    param
+    (
+        $Lessons
+    ,   [String] $InformationAction
+    )
+
+    Write-Information -Message $Lessons.Length -Tags LessonCount -InformationAction SilentlyContinue
+    foreach($Lesson in $Lessons)
+    {
+        $LessonLine = $Lesson.selection + " : " + $Lesson.lesson_id
+        Write-Information -MessageData $LessonLine -Tags LessonLine -InformationAction $InformationAction 
+    }
 }
 
 function Test-PSwirlCourse
@@ -42,21 +56,48 @@ function Test-PSwirlCourse
     ,   $Database 
     ,   $CourseID
     )
-}
 
-function Read-PSwirlLesson
-{
+    if($CourseID -eq "" -or $CourseID -eq $null)
+    {
+        throw "Course must be not null and not empty"
+    }
+
+    $Query = "EXECUTE dbo.p_get_course @as_course_id = '$CourseID'"
+    $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query
+    if($TestResult.course_exists)
+    {
+        Write-Output $TestResult.course_sid
+    }
+    else
+    {
+        throw "Course does not exist"
+    }
 }
 
 function Test-PSwirlLesson
 {
-    param
+     param
     (
         $ServerInstance 
     ,   $Database 
-    ,   $CourseID
-    ,   $LessonID
+    ,   $CourseSID
+    ,   $LessonID 
     )
+
+    $Query = "EXECUTE dbo.p_get_lesson 
+                   @ai_course_sid = $CourseSid
+              ,    @as_lesson_id = '$LessonID'
+                   "
+    $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query
+    if($TestResult.lesson_exists)
+    {
+        Write-Output $TestResult.lesson_sid
+    }
+    else
+    {
+        throw "Lesson does not exist"
+    }
+
 }
 
 function Test-MenuSelection
@@ -126,8 +167,11 @@ function Get-LessonHeaders
      ,    
         [string]
         $CourseID
-    )
 
+     , 
+        [int]
+        $CourseSID
+    )
     
     $Query = "EXECUTE dbo.p_get_lessons @as_course_id = '$CourseID'"
     $LessonHeaders = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
