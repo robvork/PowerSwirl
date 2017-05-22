@@ -27,7 +27,7 @@ function Write-CourseHeaders
     Write-Information -MessageData $Courses.Length -Tags CourseCount -InformationAction SilentlyContinue
     foreach($Course in $Courses)
     {
-        $CourseLine = $Course.selection + " : " + $Course.course_id
+        $CourseLine = $Course.selection.ToString() + " : " + $Course.course_id
         Write-Information -MessageData $CourseLine -Tags CourseLine -InformationAction $InformationAction
     }
 }
@@ -43,7 +43,7 @@ function Write-LessonHeaders
     Write-Information -Message $Lessons.Length -Tags LessonCount -InformationAction SilentlyContinue
     foreach($Lesson in $Lessons)
     {
-        $LessonLine = $Lesson.selection + " : " + $Lesson.lesson_id
+        $LessonLine = $Lesson.selection.ToString() + " : " + $Lesson.lesson_id
         Write-Information -MessageData $LessonLine -Tags LessonLine -InformationAction $InformationAction 
     }
 }
@@ -83,6 +83,11 @@ function Test-PSwirlLesson
     ,   $CourseSID
     ,   $LessonID 
     )
+
+    if($LessonID -eq "" -or $LessonID -eq $null)
+    {
+        throw "Lesson must be not null and not empty"
+    }
 
     $Query = "EXECUTE dbo.p_get_lesson 
                    @ai_course_sid = $CourseSid
@@ -173,7 +178,7 @@ function Get-LessonHeaders
         $CourseSID
     )
     
-    $Query = "EXECUTE dbo.p_get_lessons @as_course_id = '$CourseID'"
+    $Query = "EXECUTE dbo.p_get_lessons @ai_course_sid = $CourseSid"
     $LessonHeaders = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
     Write-Output $LessonHeaders 
 

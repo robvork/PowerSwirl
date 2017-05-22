@@ -30,9 +30,7 @@ function Start-PowerSwirl
     )
 
     Write-Verbose "Initializing information stream variable for output"
-    {
-        $InformationAction = Initialize-PSwirlStream
-    }
+    $InformationAction = Initialize-PSwirlStream
 
     Write-Verbose "Validating parameters and reprompting for input whenever necessary"
 
@@ -54,7 +52,7 @@ function Start-PowerSwirl
         catch
         {
             Write-Verbose "ServerInstance invalid. Getting new value"
-            Write-RetryPrompt -Message $_.Exception.Message -InformationVariable
+            Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $ServerInstance = Read-SQLServerInstance
         }
     } while($true) 
@@ -77,7 +75,7 @@ function Start-PowerSwirl
         catch
         {
             Write-Verbose "Database invalid. Getting new value"
-            Write-RetryPrompt -Message $_.Exception.Message 
+            Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $Database = Read-SQLServerDatabase
         }
     } while ($true)
@@ -101,13 +99,13 @@ function Start-PowerSwirl
         catch
         {
             Write-Verbose "User invalid. Getting new value"
-            Write-RetryPrompt -Message $_.Exception.Message 
+            Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $User = Read-PSwirlUser
         }
     } while ($true)
    
     # Determine course
-    $Courses = Get-CourseHeader -ServerInstance $ServerInstance -Database $Database 
+    $Courses = Get-CourseHeaders -ServerInstance $ServerInstance -Database $Database 
     try
     {
         Write-Verbose "Validating course"
@@ -121,7 +119,7 @@ function Start-PowerSwirl
         {
             try
             {
-                Write-CourseHeaders $Courses 
+                Write-CourseHeaders $Courses -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
                 Test-MenuSelection -MenuObjects $Courses -MenuSelection $Selection
                 $CourseSid = $Courses | 
@@ -134,30 +132,29 @@ function Start-PowerSwirl
             catch
             {
                 Write-Verbose "Course selection invalid. Getting new value"
-                Write-RetryPrompt -Message $_.Exception.Message 
+                Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             }
         } while ($true)
     }
     
     # Determine lesson
+    $LessonsInCourse = Get-LessonHeaders -ServerInstance $ServerInstance -Database $Database -CourseSID $CourseSid
     try
     {
         Write-Verbose "Validating lesson"
-        $LessonSid = Test-PSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseID $CourseID -LessonID $LessonID
+        $LessonSid = Test-PSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonID $LessonID
         Write-Verbose "Lesson valid"
     }
     catch
     {
         Write-Verbose "Lesson not valid. Prompting user with available lessons for chosen course and requesting selection"
-        $LessonsInCourse = Get-CourseDetail -ServerInstance $ServerInstance -Database $Database 
-       
         do 
         {
             try
             {
-                Write-LessonHeaders $LessonsInCourse
+                Write-LessonHeaders $LessonsInCourse -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
-                Test-MenuSelection -ChoiceObjects $LessonsInCourse
+                Test-MenuSelection -MenuObjects $LessonsInCourse -MenuSelection $Selection
                 $LessonSid = $LessonsInCourse | 
                                 Where-Object -FilterScript {$_.selection -eq $Selection} |
                                 Select-Object -ExpandProperty lesson_sid 
@@ -168,7 +165,7 @@ function Start-PowerSwirl
             catch
             {
                 Write-Verbose "Course selection invalid. Getting new value"
-                Write-RetryPrompt -Message $_.Exception.Message 
+                Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             }
         } while ($true)
     }

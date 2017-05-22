@@ -42,7 +42,7 @@ BEGIN
 			WHERE course_id = @as_course_id
 		);
 
-	SELECT ROW_NUMBER() OVER (PARTITION BY c_dtl.course_sid ORDER BY l_hdr.lesson_id) AS choice
+	SELECT ROW_NUMBER() OVER (ORDER BY l_hdr.lesson_id) AS selection
 		   , c_dtl.lesson_sid
 		   , l_hdr.lesson_id
 	FROM dbo.course_dtl AS c_dtl
