@@ -248,12 +248,13 @@ function Start-PowerSwirlLesson
             else
             {
                 $Solution = $CurrentStep.solution
+                $ExecuteCode = [bool] $CurrentStep.execute_code_flag
                 do
                 {
                     try
                     {
                         $UserInput = Read-StepInput 
-                        Test-StepInput -UserInput $UserInput -Solution $Solution
+                        Test-StepInput -UserInput $UserInput -Solution $Solution -ExecuteCode:$ExecuteCode
                         Write-UserCorrect
                         Write-Verbose "User answered correctly."
                         break
@@ -285,7 +286,8 @@ Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
 Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
 
 #Export-ModuleMember -Function Start-PowerSwirl -Alias pswirl, psw 
-#Export-ModuleMember -Function Start-PowerSwirlLesson -Alias 
+#Export-ModuleMember -Function Start-PowerSwirlLesson -Alias pswl
+#Export-ModuleMember -Function Resume-Lesson -Alias nxt
 <#
 Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
 Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"

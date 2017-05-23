@@ -89,6 +89,9 @@ function Read-StepInput
         .DESCRIPTION
         Let the user write to the information stream. Read his input from this stream.
     #>
+
+    $StepInput = Read-Host "Enter your answer"
+    Write-Output $StepInput 
 }
 
 function Test-StepInput
@@ -102,11 +105,14 @@ function Test-StepInput
         the same as the solution when literal values are expected, but any equivalent (under code evaluation) code will work. That is, superficial
         differences between the user's answer and the stored solution do not invalidate a correct answer.
     #>
+    [CmdletBinding()]
     param
     (
     [String] $UserInput 
     ,
     [String] $Solution
+    ,
+    [Switch] $ExecuteCode
     )
 
     try
@@ -114,14 +120,31 @@ function Test-StepInput
         # Evaluate each expression.
         # In the case when the inputs are just plain strings (e.g. the answer to a multiple choice question), Invoke-Expression just returns the same string
         # In the case when the inptus are code strings, the code is 
-        $diff = (Compare-Object (Invoke-Expression $UserInput) (Invoke-Expression $Solution) -ErrorAction Stop | 
+        if($ExecuteCode)
+        {
+            Write-Verbose "Executing code"
+            $UserInput = Invoke-Expression $UserInput
+            $Solution = Invoke-Expression $Solution
+        }
+        
+        Write-Verbose "Comparing input to solution"
+        $diff = (Compare-Object $UserInput $Solution -ErrorAction Stop | 
                     Select-Object -ExpandProperty SideIndicator
                 ) 
-        return ($diff.Count -eq 0)
+
+        if ($diff.Count -ne 0)
+        {
+            Write-Verbose "Input does not match solution"
+            throw 
+        }
+        else
+        {
+            Write-Verbose "Input matches the solution"
+        }
     }
     catch
     {
-        return $false 
+        throw "Input does not match solution"
     }
 }
 
@@ -134,6 +157,11 @@ function Write-UserIncorrect
         .DESCRIPTION
         Write a message to the information stream, chosen from one or more possible messages, indicating an incorrect answer.
     #>
+    [CmdletBinding()]
+    param
+    (
+    )
+    Write-Information "Incorrect. Try again"
 }
 
 function Write-UserCorrect
@@ -145,4 +173,9 @@ function Write-UserCorrect
         .DESCRIPTION
         Write a message to the information stream, chosen from one or more possible messages, indicating a correct answer.
     #>
+    [CmdletBinding()]
+    param
+    (
+    )
+    Write-Information "Correct."
 }
