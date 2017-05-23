@@ -49,7 +49,7 @@ function Get-LessonContent
     )
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
-    Write-Verbose "Getting lesson information"
+    Write-Verbose "Getting lesson content"
     $Query = "EXECUTE dbo.p_get_lesson_content
                       @ai_course_sid = $CourseSid
               ,       @ai_lesson_sid = $LessonSid

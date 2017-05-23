@@ -85,7 +85,8 @@ function Resume-Lesson
     $Params["CourseSid"] = $CourseSid 
     $Params["LessonSid"] = $LessonSid 
     $Params["StepNum"] = $StepNum
-    $Params["DisableForcePause"] = $true 
+    $Params["DisableForcePause"] = $true
+    $Params["UserSid"] = $UserSid 
 
     Start-PowerSwirlLesson @Params
 }

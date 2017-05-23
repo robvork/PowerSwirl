@@ -213,7 +213,7 @@ function Start-PowerSwirlLesson
     $LessonContent = Get-LessonContent @Params
     Write-Verbose "Beginning lesson"
     
-    $PauseLesson = $DisableForcePause
+    $PauseLesson = -not $DisableForcePause.IsPresent
     for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
         $CurrentStep = $LessonContent[$StepIdx]
@@ -272,11 +272,13 @@ function Start-PowerSwirlLesson
         }
         else
         {
+            Read-Host 
             Write-Verbose "Step does not require input"
         }
         Write-Verbose "Step completed"
     }
 
+   
     Write-Verbose "Lesson completed"
 }
 
