@@ -184,13 +184,15 @@ function Start-PowerSwirlLesson
         ,
         [String] $Database
         ,
-        [String] $CourseSid
+        [Int] $CourseSid
         ,
-        [String] $LessonSid
+        [Int] $LessonSid
         ,
-        [String] $UserSid
+        [Int] $UserSid
         ,
-        [String] $StepNum = 1
+        [String] $StepNumStart = 1
+        ,
+        [Switch] $DisableForcePause
     )
 
     $Params = @{
@@ -206,15 +208,54 @@ function Start-PowerSwirlLesson
     $StepCount = $LessonInfo.step_count
     Write-Verbose "Course: $CourseID"
     Write-Verbose "Lesson: $LessonID"
-    Write-Verbose "Step count: $($LessonInfo.step_count)"
+    Write-Verbose "Step count: $StepCount"
 
     $LessonContent = Get-LessonContent @Params
     Write-Verbose "Beginning lesson"
     
-    for($StepIdx = ($StepNum - 1); $StepIdx -lt $StepCount; $StepIdx++)
+    $PauseLesson = $DisableForcePause
+    for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
-        Write-Verbose "Lesson step $($StepIdx + 1)"
+        $StepNumCurrent = $StepIdx + 1
+        Write-Verbose "Lesson step $StepNumCurrent"
         Write-LessonPrompt -Prompt $LessonContent[$StepIdx].step_prompt 
+
+        if([bool]$LessonContent[$StepIdx].requires_input)
+        {
+            # The first time the step is encountered, $PauseLesson should be true, so the lesson will be paused
+            if($PauseLesson)
+            {
+                Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
+                $SaveLessonParams = @{
+                    ServerInstance = $ServerInstance
+                ;   Database = $Database
+                ;   CourseSid = $CourseSid
+                ;   LessonSid = $LessonSid
+                ;   StepNum = $StepNumCurrent
+                ;   UserSid = $UserSid 
+                }
+                Save-Lesson @SaveLessonParams
+                return
+            }
+
+            # The second time the step is encountered, we just resumed a lesson with $DisableForcePause = true, so we don't pause again
+            else
+            {
+                $UserInput = Read-StepInput 
+                do
+                {
+                    try
+                    {
+                        Test-StepInput 
+                    }
+                    catch
+                    {
+                    }
+                }
+                while($true) 
+                $PauseLesson = $true 
+            }
+        }
     }
 
     Write-Verbose "Lesson completed"

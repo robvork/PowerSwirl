@@ -5,7 +5,7 @@ GO
 CREATE PROCEDURE dbo.p_get_pause_info
 (
 	  @ai_debug_level INT = 0
-	, @ai_user_sid ID
+	, @ai_user_sid SID
 )
 AS
 /*******************************************************************************

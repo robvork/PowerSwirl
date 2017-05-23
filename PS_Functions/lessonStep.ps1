@@ -6,9 +6,9 @@ function Get-LessonInfo
         ,
         [String] $Database
         ,
-        [String] $CourseSid
+        [Int] $CourseSid
         ,
-        [String] $LessonSid
+        [Int] $LessonSid
     )
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
@@ -43,9 +43,9 @@ function Get-LessonContent
         ,
         [String] $Database
         ,
-        [String] $CourseSid
+        [Int] $CourseSid
         ,
-        [String] $LessonSid
+        [Int] $LessonSid
     )
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
@@ -102,6 +102,27 @@ function Test-StepInput
         the same as the solution when literal values are expected, but any equivalent (under code evaluation) code will work. That is, superficial
         differences between the user's answer and the stored solution do not invalidate a correct answer.
     #>
+    param
+    (
+    [String] $UserInput 
+    ,
+    [String] $Solution
+    )
+
+    try
+    {
+        # Evaluate each expression.
+        # In the case when the inputs are just plain strings (e.g. the answer to a multiple choice question), Invoke-Expression just returns the same string
+        # In the case when the inptus are code strings, the code is 
+        $diff = (Compare-Object (Invoke-Expression $UserInput) (Invoke-Expression $Solution) -ErrorAction Stop | 
+                    Select-Object -ExpandProperty SideIndicator
+                ) 
+        return ($diff.Count -eq 0)
+    }
+    catch
+    {
+        return $false 
+    }
 }
 
 function Write-UserIncorrect
