@@ -42,7 +42,7 @@ BEGIN
 				WHERE l_dtl.course_sid = l_hdr.course_sid
 					AND
 					l_dtl.lesson_sid = l_hdr.lesson_sid
-		   ) AS num_steps
+		   ) AS step_count
 	FROM 
 		 dbo.lesson_hdr AS l_hdr
 		 INNER JOIN 

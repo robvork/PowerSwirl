@@ -190,42 +190,34 @@ function Start-PowerSwirlLesson
         ,
         [String] $UserSid
         ,
-        [String] $StepNum
+        [String] $StepNum = 1
     )
 
-    $Params = @{ServerInstance=$ServerInstance; Database=$Database}
+    $Params = @{
+       ServerInstance=$ServerInstance
+    ;  Database=$Database 
+    ;  CourseSid=$CourseSid
+    ;  LessonSid=$LessonSid
+    }
 
-    Write-Verbose "Getting lesson information"
-    $Query = "EXECUTE dbo.p_get_lesson_info 
-                      @ai_course_sid = $CourseSid
-              ,       @ai_lesson_sid = $LessonSid
-              ;
-             "
-    $Params["Query"] = $Query
-    Write-Verbose "Executing Query =`n$Query" 
-    $LessonInfo = Invoke-SqlCmd2 @params
-    $NumSteps = $LessonInfo.num_steps 
-    $CourseID = $LessonInfo.course_id 
-    $LessonID = $LessonInfo.lesson_id 
+    $LessonInfo = Get-LessonInfo @Params
+    $CourseID = $LessonInfo.course_id
+    $LessonID = $LessonInfo.lesson_id
+    $StepCount = $LessonInfo.step_count
     Write-Verbose "Course: $CourseID"
     Write-Verbose "Lesson: $LessonID"
-    Write-Verbose "Step count: $NumSteps"
+    Write-Verbose "Step count: $($LessonInfo.step_count)"
 
-    Write-Verbose "Getting lesson content"
-    $Query = "EXECUTE dbo.p_get_lesson_content 
-                      @ai_course_sid = $CourseSid
-              ,       @ai_lesson_sid = $LessonSid
-              ;
-             "
-    Write-Verbose "Executing Query = `n$Query" 
-    $Params["Query"] = $Query 
-    $LessonContent = Invoke-Sqlcmd2 @params
+    $LessonContent = Get-LessonContent @Params
     Write-Verbose "Beginning lesson"
     
-    for($StepIdx = 0; $StepIdx -lt $NumSteps; $StepIdx++)
+    for($StepIdx = ($StepNum - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
-
+        Write-Verbose "Lesson step $($StepIdx + 1)"
+        Write-LessonPrompt -Prompt $LessonContent[$StepIdx].step_prompt 
     }
+
+    Write-Verbose "Lesson completed"
 }
 
 Set-Alias -Name "psw" -Value "Start-PowerSwirl"

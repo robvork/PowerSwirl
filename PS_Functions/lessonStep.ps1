@@ -1,5 +1,28 @@
 function Get-LessonInfo
 {
+    param
+    (
+        [String] $ServerInstance 
+        ,
+        [String] $Database
+        ,
+        [String] $CourseSid
+        ,
+        [String] $LessonSid
+    )
+
+    $Params = @{ServerInstance=$ServerInstance; Database=$Database}
+    Write-Verbose "Getting lesson information"
+    $Query = "EXECUTE dbo.p_get_lesson_info
+                      @ai_course_sid = $CourseSid
+              ,       @ai_lesson_sid = $LessonSid
+              ;
+             "
+    $Params["Query"] = $Query
+    Write-Verbose "Executing Query =`n$Query"
+    $LessonInfo = Invoke-SqlCmd2 @params 
+    
+    Write-Output $LessonInfo
 }
 
 function Get-LessonContent
@@ -27,13 +50,16 @@ function Get-LessonContent
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
     Write-Verbose "Getting lesson information"
-    $Query = "EXECUTE dbo.p_get_lesson_info 
+    $Query = "EXECUTE dbo.p_get_lesson_content
                       @ai_course_sid = $CourseSid
               ,       @ai_lesson_sid = $LessonSid
               ;
              "
     $Params["Query"] = $Query
     Write-Verbose "Executing Query =`n$Query" 
+    $LessonContent = Invoke-SqlCmd2 @params
+
+    Write-Output $LessonContent 
 }
 
 function Write-LessonPrompt
@@ -45,6 +71,13 @@ function Write-LessonPrompt
         .DESCRIPTION
         Write the step prompt to the information stream and the host
     #>
+    [CmdletBinding()]
+    param
+    (
+        [String] $Prompt
+    )
+
+    Write-Information $Prompt 
 }
 
 function Read-StepInput
