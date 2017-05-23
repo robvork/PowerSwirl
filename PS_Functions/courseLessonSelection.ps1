@@ -25,9 +25,10 @@ function Write-CourseHeaders
     )
 
     Write-Information -MessageData $Courses.Length -Tags CourseCount -InformationAction SilentlyContinue
+    Write-Information -MessageData "Choose a course from the following" -InformationAction $InformationAction
     foreach($Course in $Courses)
     {
-        $CourseLine = $Course.selection.ToString() + " : " + $Course.course_id
+        $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
         Write-Information -MessageData $CourseLine -Tags CourseLine -InformationAction $InformationAction
     }
 }
@@ -41,9 +42,10 @@ function Write-LessonHeaders
     )
 
     Write-Information -Message $Lessons.Length -Tags LessonCount -InformationAction SilentlyContinue
+    Write-Information -MessageData "Choose a lesson from the following" -InformationAction $InformationAction
     foreach($Lesson in $Lessons)
     {
-        $LessonLine = $Lesson.selection.ToString() + " : " + $Lesson.lesson_id
+        $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
         Write-Information -MessageData $LessonLine -Tags LessonLine -InformationAction $InformationAction 
     }
 }
@@ -182,25 +184,4 @@ function Get-LessonHeaders
     $LessonHeaders = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
     Write-Output $LessonHeaders 
 
-}
-
-function Get-LessonInfo
-{
-}
-
-function Get-LessonContent
-{
-    <#
-        .SYNOPSIS
-        Get the PowerSwirl lesson data needed for the presentation of a lesson
-
-        .DESCRIPTION
-        Get the PowerSwirl lesson data, consisting of columns step_prompt, requires_input_flag, execute_code_flag, store_variable_flag, solution, and variable.
-        Each record corresponds to a single step in a lesson. The step_prompt and flag values are mandatory, but the solution and variable flags are mandatory
-        if and only if the requires_input_flag and store_variable_flag flags are set to true, respectively. 
-    #>
-    [CmdletBinding()]
-    param
-    (
-    )
 }

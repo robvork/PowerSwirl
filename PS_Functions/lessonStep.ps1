@@ -1,3 +1,41 @@
+function Get-LessonInfo
+{
+}
+
+function Get-LessonContent
+{
+    <#
+        .SYNOPSIS
+        Get the PowerSwirl lesson data needed for the presentation of a lesson
+
+        .DESCRIPTION
+        Get the PowerSwirl lesson data, consisting of columns step_prompt, requires_input_flag, execute_code_flag, store_variable_flag, solution, and variable.
+        Each record corresponds to a single step in a lesson. The step_prompt and flag values are mandatory, but the solution and variable flags are mandatory
+        if and only if the requires_input_flag and store_variable_flag flags are set to true, respectively. 
+    #>
+    [CmdletBinding()]
+    param
+    (
+        [String] $ServerInstance 
+        ,
+        [String] $Database
+        ,
+        [String] $CourseSid
+        ,
+        [String] $LessonSid
+    )
+
+    $Params = @{ServerInstance=$ServerInstance; Database=$Database}
+    Write-Verbose "Getting lesson information"
+    $Query = "EXECUTE dbo.p_get_lesson_info 
+                      @ai_course_sid = $CourseSid
+              ,       @ai_lesson_sid = $LessonSid
+              ;
+             "
+    $Params["Query"] = $Query
+    Write-Verbose "Executing Query =`n$Query" 
+}
+
 function Write-LessonPrompt
 {
     <#
