@@ -216,16 +216,22 @@ function Start-PowerSwirlLesson
     $PauseLesson = $DisableForcePause
     for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
-        $StepNumCurrent = $StepIdx + 1
+        $CurrentStep = $LessonContent[$StepIdx]
+        $StepNumCurrent = $CurrentStep.step_num
+        $StepPrompt = $CurrentStep.step_prompt
+        $StepRequiresInput = [bool] $CurrentStep.requires_input
         Write-Verbose "Lesson step $StepNumCurrent"
-        Write-LessonPrompt -Prompt $LessonContent[$StepIdx].step_prompt 
 
-        if([bool]$LessonContent[$StepIdx].requires_input)
+        Write-LessonPrompt -Prompt $StepPrompt 
+
+        if($StepRequiresInput)
         {
+            Write-Verbose "Step requires input"
             # The first time the step is encountered, $PauseLesson should be true, so the lesson will be paused
             if($PauseLesson)
             {
                 Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
+                Write-Verbose "Pausing lesson and saving user's progress"
                 $SaveLessonParams = @{
                     ServerInstance = $ServerInstance
                 ;   Database = $Database
@@ -241,21 +247,33 @@ function Start-PowerSwirlLesson
             # The second time the step is encountered, we just resumed a lesson with $DisableForcePause = true, so we don't pause again
             else
             {
-                $UserInput = Read-StepInput 
+                $Solution = $CurrentStep.solution
                 do
                 {
                     try
                     {
-                        Test-StepInput 
+                        $UserInput = Read-StepInput 
+                        Test-StepInput -UserInput $UserInput -Solution $Solution
+                        Write-UserCorrect
+                        Write-Verbose "User answered correctly."
+                        break
                     }
                     catch
                     {
+                        Write-UserIncorrect
+                        Write-Verbose "User answered incorrectly. Prompting for retry."
                     }
                 }
                 while($true) 
                 $PauseLesson = $true 
             }
+            
         }
+        else
+        {
+            Write-Verbose "Step does not require input"
+        }
+        Write-Verbose "Step completed"
     }
 
     Write-Verbose "Lesson completed"
