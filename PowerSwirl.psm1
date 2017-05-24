@@ -287,9 +287,9 @@ Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
 Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
 
-#Export-ModuleMember -Function Start-PowerSwirl -Alias pswirl, psw 
-#Export-ModuleMember -Function Start-PowerSwirlLesson -Alias pswl
-#Export-ModuleMember -Function Resume-Lesson -Alias nxt
+Export-ModuleMember -Function Start-PowerSwirl -Alias pswirl, psw 
+Export-ModuleMember -Function Start-PowerSwirlLesson -Alias pswl
+Export-ModuleMember -Function Resume-Lesson -Alias nxt
 <#
 Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
 Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"

@@ -5,8 +5,20 @@ function Read-SQLServerInstance
         Get SQL Server instance from user
     #>
 
+    [CmdletBinding()]
+    param
+    (
+    )
+
     $ServerInstance = Read-Host -Prompt "SQL Server instance name"
-    Write-Output $ServerInstance
+    if($ServerInstance -eq "")
+    {
+        throw "Empty ServerInstance passed"
+    }
+    else
+    {
+        Write-Output $ServerInstance
+    }
 }
 
 function Read-SQLServerDatabase
@@ -17,7 +29,14 @@ function Read-SQLServerDatabase
     #>
 
     $Database = Read-Host -Prompt "Database name"
-    Write-Output $Database 
+    if($Database -eq "")
+    {
+        throw "Empty Database passed"
+    }
+    else
+    {
+        Write-Output $Database
+    } 
 }
 
 function Read-PSwirlUser
@@ -27,7 +46,14 @@ function Read-PSwirlUser
         Read user and password from user
     #>
     $User = Read-Host -Prompt "PowerSwirl User"
-    Write-Output $User 
+    if($User -eq "")
+    {
+        throw "Empty User passed"
+    }
+    else
+    {
+        Write-Output $User
+    } 
 }
 
 
