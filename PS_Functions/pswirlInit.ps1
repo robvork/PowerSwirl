@@ -61,7 +61,6 @@ function Test-PSwirlUser
 
 function Initialize-PSwirlStream
 {
-    #$InformationAction = "Continue"
-    $InformationAction = "SilentlyContinue"
+    $InformationAction = "Continue"
     Write-Output $InformationAction 
 }
