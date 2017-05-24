@@ -1,13 +1,13 @@
 function Write-RetryPrompt 
 {
+    [CmdletBinding()]
     param
     (
         [String] $Message
-    ,   [String] $InformationAction
     )
 
-    Write-Information -MessageData $Message -InformationAction $InformationAction
-    Write-Information -MessageData "Please try again." -InformationAction $InformationAction
+    Write-Information -MessageData $Message -Tags Message
+    Write-Information -MessageData "Please try again." -Tags PostMessage
 }
 
 function Read-MenuSelection
@@ -18,35 +18,35 @@ function Read-MenuSelection
 
 function Write-CourseHeaders
 {
+    [CmdletBinding()]
     param
     (
         $Courses
-    ,   [String] $InformationAction
     )
 
     Write-Information -MessageData $Courses.Length -Tags CourseCount -InformationAction SilentlyContinue
-    Write-Information -MessageData "Choose a course from the following" -InformationAction $InformationAction
+    Write-Information -MessageData "Choose a course from the following" -Tags PreHeaders
     foreach($Course in $Courses)
     {
         $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
-        Write-Information -MessageData $CourseLine -Tags CourseLine -InformationAction $InformationAction
+        Write-Information -MessageData $CourseLine -Tags CourseLine 
     }
 }
 
 function Write-LessonHeaders
 {
+    [CmdletBinding()]
     param
     (
         $Lessons
-    ,   [String] $InformationAction
     )
 
     Write-Information -Message $Lessons.Length -Tags LessonCount -InformationAction SilentlyContinue
-    Write-Information -MessageData "Choose a lesson from the following" -InformationAction $InformationAction
+    Write-Information -MessageData "Choose a lesson from the following" -Tags PreHeaders
     foreach($Lesson in $Lessons)
     {
         $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
-        Write-Information -MessageData $LessonLine -Tags LessonLine -InformationAction $InformationAction 
+        Write-Information -MessageData $LessonLine -Tags LessonLine
     }
 }
 
