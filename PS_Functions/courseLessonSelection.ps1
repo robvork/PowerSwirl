@@ -5,9 +5,15 @@ function Write-RetryPrompt
     (
         [String] $Message
     )
-
-    Write-Information -MessageData $Message -Tags Message
-    Write-Information -MessageData "Please try again." -Tags PostMessage
+    if($Message -eq "" -or $Message -eq $null)
+    {
+        throw "Message must be not null and not empty"
+    }
+    else
+    {
+        Write-Information -MessageData $Message -Tags Message
+        Write-Information -MessageData "Please try again." -Tags PostMessage
+    }
 }
 
 function Read-MenuSelection
@@ -15,6 +21,7 @@ function Read-MenuSelection
     $Selection = Read-Host -Prompt "Selection"
     Write-Output $Selection 
 }
+
 
 function Write-CourseHeaders
 {
@@ -24,12 +31,37 @@ function Write-CourseHeaders
         $Courses
     )
 
-    Write-Information -MessageData $Courses.Length -Tags CourseCount -InformationAction SilentlyContinue
-    Write-Information -MessageData "Choose a course from the following" -Tags PreHeaders
+    if($Courses -eq $null)
+    {
+        throw "Courses must be non-null"
+    }
+
+    $requiredProperties = "selection","course_id"
+    $actualProperties = Get-Member -InputObject $Courses -MemberType Property 
+    $hasRequiredProperties = $true 
+    $missingProperties = [string[]]@()
+    foreach($rp in $requiredProperties)
+    {
+        if($rp -notin $actualProperties)
+        {
+            $hasrequiredProperties = $false
+            $missingProperties += $rp
+        }
+    }
+    if(-not $hasRequiredProperties)
+    {
+        throw "Courses does not have the required properties. Missing propeties : $($missingProperties -join ",")"
+    }
+
+    
+
+    $CourseCount = $Courses | Measure-Object | Select-Object -ExpandProperty Count
+    Write-Information -MessageData $CourseCount -Tags CourseCount -InformationAction SilentlyContinue
+    Write-Information -MessageData "Choose a course from the following" -Tags PreHeader
     foreach($Course in $Courses)
     {
         $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
-        Write-Information -MessageData $CourseLine -Tags CourseLine 
+        Write-Information -MessageData $CourseLine -Tags CourseHeader
     }
 }
 

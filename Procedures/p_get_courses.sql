@@ -36,7 +36,6 @@ BEGIN
 		 , course_id
 		 , course_sid 
 	FROM dbo.course_hdr
-	ORDER BY course_id
 	;
 
 END
