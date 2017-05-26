@@ -31,18 +31,17 @@ function Write-CourseHeaders
         [CourseHeader[]] $CourseHeaders
     )
 
-    if($Courses -eq $null)
+    if($CourseHeaders -eq $null)
     {
         throw "Courses must be non-null"
     }
 
-    $CourseCount = $Courses | Measure-Object | Select-Object -ExpandProperty Count
-    Write-Information -MessageData $CourseCount -Tags CourseCount -InformationAction SilentlyContinue
+    Write-Information -MessageData $CourseHeaders.Length -Tags CourseCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a course from the following" -Tags PreHeader
-    foreach($Course in $Courses)
+    foreach($Course in $CourseHeaders)
     {
         $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
-        Write-Information -MessageData $CourseLine -Tags CourseHeader
+        Write-Information -MessageData $CourseLine -Tags CourseHeaderString
     }
 }
 
@@ -51,12 +50,12 @@ function Write-LessonHeaders
     [CmdletBinding()]
     param
     (
-        $Lessons
+        $LessonHeaders
     )
 
-    Write-Information -Message $Lessons.Length -Tags LessonCount -InformationAction SilentlyContinue
+    Write-Information -Message $LessonHeaders.Length -Tags LessonCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a lesson from the following" -Tags PreHeaders
-    foreach($Lesson in $Lessons)
+    foreach($Lesson in $LessonHeaders)
     {
         $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
         Write-Information -MessageData $LessonLine -Tags LessonLine
@@ -183,6 +182,7 @@ function Get-CourseHeaders
     Test-HasNoDuplicates $Courses "course_id"
     Test-HasNoDuplicates $Courses "course_sid"
 
+
     foreach($c in $Courses)
     {
         $courseHeader = [CourseHeader]::new($c.selection, $c.course_id, $c.course_sid)
@@ -298,8 +298,9 @@ function Test-HasNoDuplicates
     }
 
     $Count = $Objects.Length 
-    $UniqueCount = $Objects[$Property] | 
-                   Sort-Object -Unique 
+    $UniqueCount = ($Objects.$Property | 
+                   Sort-Object -Unique).Length
+                   
     if($Count -ne $UniqueCount)
     {
         throw "Values of '$Property' must be unique"
