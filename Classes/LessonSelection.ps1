@@ -15,7 +15,7 @@ class LessonSelection : MenuSelection
 
     [bool] Equals([Object] $other)
     {
-        return ($other -is [LessonSelection]) -and ($other.LessonID = $this.LessonID -and $other.LessonSID -eq $this.LessonSID)
+        return ($other -is [LessonSelection]) -and ($other.selection.equals($this.Selection)) -and ($other.Lesson -eq $this.Lesson)
     }
 }
 

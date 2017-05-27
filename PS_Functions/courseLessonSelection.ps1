@@ -127,7 +127,7 @@ function Test-MenuSelection
 
     if($MenuSelection -notin $MenuSelections)
     {
-        throw "$MenuSelection is not a valid selection"
+        throw "Invalid menu selection"
     }
 }
 
