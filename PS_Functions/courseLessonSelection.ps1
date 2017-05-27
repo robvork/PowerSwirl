@@ -36,11 +36,10 @@ function Write-CourseSelections
     }
 
     Write-Information -MessageData $CourseSelections.Length -Tags CourseCount -InformationAction SilentlyContinue
-    Write-Information -MessageData "Choose a course from the following" -Tags PreHeader
+    Write-Information -MessageData "Choose a course from the following" -Tags PreSelection
     foreach($Course in $CourseSelections)
     {
-        $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
-        Write-Information -MessageData $CourseLine -Tags CourseSelectionString
+        Write-Information -MessageData $Course.ToString() -Tags CourseSelectionString
     }
 }
 
@@ -53,7 +52,7 @@ function Write-LessonSelections
     )
 
     Write-Information -Message $LessonSelections.Length -Tags LessonCount -InformationAction SilentlyContinue
-    Write-Information -MessageData "Choose a lesson from the following" -Tags PreHeaders
+    Write-Information -MessageData "Choose a lesson from the following" -Tags PreSelection
     foreach($Lesson in $LessonSelections)
     {
         $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
@@ -126,8 +125,6 @@ function Test-MenuSelection
     ,   [MenuSelection] $MenuSelection
     )
 
-    $MenuSelections = $MenuObjects.selection
-
     if($MenuSelection -notin $MenuSelections)
     {
         throw "$MenuSelection is not a valid selection"
@@ -158,19 +155,19 @@ function Get-CourseSelections
     $Courses = Invoke-SqlCmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
 
     Test-HasNoDBNulls $Courses "selection"
-    Test-HasNoDBNulls $Courses "course_id"
-    Test-HasNoDBNulls $Courses "course_sid"
+    Test-HasNoDBNulls $Courses "courseID"
+    Test-HasNoDBNulls $Courses "courseSID"
 
-    Test-HasNoEmptyStrings $Courses "course_id"
+    Test-HasNoEmptyStrings $Courses "courseID"
 
     Test-HasNoDuplicates $Courses "selection"
-    Test-HasNoDuplicates $Courses "course_id"
-    Test-HasNoDuplicates $Courses "course_sid"
+    Test-HasNoDuplicates $Courses "courseID"
+    Test-HasNoDuplicates $Courses "courseSID"
 
 
     foreach($c in $Courses)
     {
-        $courseSelection = [CourseSelection]::new($c.selection, $c.course_id, $c.course_sid)
+        $courseSelection = New-CourseSelection -Selection $c.Selection -CourseID $c.CourseID -CourseSID $c.CourseSID 
         Write-Output $courseSelection
     }
 }
@@ -223,7 +220,7 @@ function Get-LessonSelections
     $Lessons = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
     foreach($l in $Lessons)
     {
-        $LessonSelection = [LessonSelection]::new($l.selection, $l.lesson_id, $l.lesson_sid)
+        $LessonSelection = New-LessonSelection -Selection $l.Selection -LessonID $l.lessonID -LessonSID $l.lessonSID 
         Write-Output $LessonSelection
     }
 
@@ -323,66 +320,9 @@ function Test-HasNoEmptyStrings
     }
 }
 
-function New-Course
-{
-    [CmdletBinding()]
-    param
-    (
-        [Int] $CourseSID 
-    ,
-        [String] $CourseID
-    )
 
-    Write-Output ([Course]::new($CourseID, $CourseSID))
-}
 
-function New-CourseSelection
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [Int] $Selection
-    ,
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [Int] $CourseSID 
-    ,
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [String] $CourseID
-    )
 
-    Write-Output ([CourseSelection]::new($Selection, $CourseID, $CourseSID))
-}
 
-function New-Lesson
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [String] $LessonID
-    ,
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [Int] $LessonSID
-    )
 
-    Write-Output ([Lesson]::new($LessonID, $LessonSID))
-}
 
-function New-LessonSelection
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [Int] $Selection
-    ,
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [String] $LessonID
-    ,
-        [Parameter(ValueFromPipelineByPropertyName=$true)]
-        [Int] $LessonSID
-    )
-
-    Write-Output ([LessonSelection]::new($Selection, $LessonID, $LessonSid))
-}

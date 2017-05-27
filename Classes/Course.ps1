@@ -14,3 +14,16 @@ class Course
         return ($other -is [Course]) -and ($other.CourseID -eq $this.CourseID -and $other.CourseSID -eq $this.CourseSID)
     }
 }
+
+function New-Course
+{
+    [CmdletBinding()]
+    param
+    (
+        [Int] $CourseSID 
+    ,
+        [String] $CourseID
+    )
+
+    Write-Output ([Course]::new($CourseID, $CourseSID))
+}

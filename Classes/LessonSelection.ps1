@@ -1,13 +1,11 @@
 class LessonSelection : MenuSelection
 {
-    [String] $LessonID 
-    [Int] $LessonSID 
+    [Lesson] $Lesson
 
     LessonSelection([Int]$Selection, [String] $LessonID, [Int] $LessonSID)
         :base($Selection)
     {
-        $this.LessonID = $LessonID
-        $this.LessonSID = $LessonSID 
+        $this.Lesson = New-Lesson -LessonID $LessonID -LessonSID $LessonSID
     }
 
     [String] ToString() 
@@ -19,4 +17,22 @@ class LessonSelection : MenuSelection
     {
         return ($other -is [LessonSelection]) -and ($other.LessonID = $this.LessonID -and $other.LessonSID -eq $this.LessonSID)
     }
+}
+
+function New-LessonSelection
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $Selection
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $LessonID
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $LessonSID
+    )
+
+    Write-Output ([LessonSelection]::new($Selection, $LessonID, $LessonSid))
 }

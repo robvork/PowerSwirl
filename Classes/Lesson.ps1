@@ -19,3 +19,18 @@ class Lesson
         return $this.LessonID.ToString()
     }
 }
+
+function New-Lesson
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $LessonID
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $LessonSID
+    )
+
+    Write-Output ([Lesson]::new($LessonID, $LessonSID))
+}

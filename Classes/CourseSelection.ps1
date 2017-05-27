@@ -1,11 +1,11 @@
 class CourseSelection : MenuSelection
 {
-    [Course] $course
+    [Course] $Course
 
     CourseSelection([Int]$Selection, [String] $CourseID, [Int] $CourseSID) 
         : base($Selection) 
     {
-        $this.course = [Course]::new($CourseID, $CourseSID)
+        $this.Course = New-Course -CourseID $CourseID -CourseSID $CourseSID
     }
 
     [String] ToString() 
@@ -17,4 +17,22 @@ class CourseSelection : MenuSelection
     {
         return ($other -is [CourseSelection]) -and ($other.selection.equals($this.Selection)) -and ($other.course.equals($this.course))
     }
+}
+
+function New-CourseSelection
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $Selection
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $CourseSID 
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $CourseID
+    )
+
+    Write-Output ([CourseSelection]::new($Selection, $CourseID, $CourseSID))
 }
