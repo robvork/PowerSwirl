@@ -22,40 +22,39 @@ function Read-MenuSelection
     Write-Output $Selection 
 }
 
-
-function Write-CourseHeaders
+function Write-CourseSelections
 {
     [CmdletBinding()]
     param
     (
-        [CourseHeader[]] $CourseHeaders
+        [CourseSelection[]] $CourseSelections
     )
 
-    if($CourseHeaders -eq $null)
+    if($CourseSelections -eq $null)
     {
         throw "Courses must be non-null"
     }
 
-    Write-Information -MessageData $CourseHeaders.Length -Tags CourseCount -InformationAction SilentlyContinue
+    Write-Information -MessageData $CourseSelections.Length -Tags CourseCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a course from the following" -Tags PreHeader
-    foreach($Course in $CourseHeaders)
+    foreach($Course in $CourseSelections)
     {
         $CourseLine = $Course.selection.ToString() + ": " + $Course.course_id
-        Write-Information -MessageData $CourseLine -Tags CourseHeaderString
+        Write-Information -MessageData $CourseLine -Tags CourseSelectionString
     }
 }
 
-function Write-LessonHeaders
+function Write-LessonSelections
 {
     [CmdletBinding()]
     param
     (
-        $LessonHeaders
+        $LessonSelections
     )
 
-    Write-Information -Message $LessonHeaders.Length -Tags LessonCount -InformationAction SilentlyContinue
+    Write-Information -Message $LessonSelections.Length -Tags LessonCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a lesson from the following" -Tags PreHeaders
-    foreach($Lesson in $LessonHeaders)
+    foreach($Lesson in $LessonSelections)
     {
         $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
         Write-Information -MessageData $LessonLine -Tags LessonLine
@@ -123,8 +122,8 @@ function Test-MenuSelection
 {
     param
     (
-        [Object[]] $MenuObjects
-    ,   [int] $MenuSelection
+        [MenuSelection[]] $MenuSelections
+    ,   [MenuSelection] $MenuSelection
     )
 
     $MenuSelections = $MenuObjects.selection
@@ -135,25 +134,11 @@ function Test-MenuSelection
     }
 }
 
-class CourseHeader
-{
-    [Int] $Selection 
-    [String] $CourseID 
-    [Int] $CourseSID 
-
-    CourseHeader([Int]$Selection, [String] $CourseID, [Int] $CourseSID)
-    {
-        $this.Selection = $Selection
-        $this.CourseID = $CourseID
-        $this.CourseSID = $CourseSID 
-    }
-}
-
-function Get-CourseHeaders
+function Get-CourseSelections
 {
     <#
         .SYNOPSIS
-        Get PowerSwirl courses 
+        Get PowerSwirl course selections 
 
         .DESCRIPTION
         Get the PowerSwirl course headers. A course header record consists of a descriptive name and a numeric course sid. 
@@ -185,30 +170,31 @@ function Get-CourseHeaders
 
     foreach($c in $Courses)
     {
-        $courseHeader = [CourseHeader]::new($c.selection, $c.course_id, $c.course_sid)
-        Write-Output $courseHeader
+        $courseSelection = [CourseSelection]::new($c.selection, $c.course_id, $c.course_sid)
+        Write-Output $courseSelection
     }
 }
 
-class LessonHeader
+function Get-Courses
 {
-    [Int] $Selection 
-    [String] $LessonID 
-    [Int] $LessonSID 
-
-    CourseHeader([Int]$Selection, [String] $LessonID, [Int] $LessonSID)
-    {
-        $this.Selection = $Selection
-        $this.LessonID = $LessonID
-        $this.LessonSID = $LessonSID 
-    }
+    [CmdletBinding()]
+    param
+    (
+        [string]
+        $ServerInstance 
+    
+    ,   [string]
+        $Database
+    )
+    Get-CourseSelections @PSBoundParameters | 
+    Select-Object -ExpandProperty Course
 }
 
-function Get-LessonHeaders
+function Get-LessonSelections
 {
     <#
         .SYNOPSIS
-        Get PowerSwirl lesson headers
+        Get PowerSwirl lesson selections
 
         .DESCRIPTION
         Get the PowerSwirl lesson headers. A lesson header record consists of numeric lesson sids and a descriptive name.
@@ -237,8 +223,8 @@ function Get-LessonHeaders
     $Lessons = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
     foreach($l in $Lessons)
     {
-        $LessonHeader = [LessonHeader]::new($l.selection, $l.lesson_id, $l.lesson_sid)
-        Write-Output $LessonHeader
+        $LessonSelection = [LessonSelection]::new($l.selection, $l.lesson_id, $l.lesson_sid)
+        Write-Output $LessonSelection
     }
 
 }
@@ -335,4 +321,68 @@ function Test-HasNoEmptyStrings
     {
         throw "Values of '$Property' must be non-empty"
     }
+}
+
+function New-Course
+{
+    [CmdletBinding()]
+    param
+    (
+        [Int] $CourseSID 
+    ,
+        [String] $CourseID
+    )
+
+    Write-Output ([Course]::new($CourseID, $CourseSID))
+}
+
+function New-CourseSelection
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $Selection
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $CourseSID 
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $CourseID
+    )
+
+    Write-Output ([CourseSelection]::new($Selection, $CourseID, $CourseSID))
+}
+
+function New-Lesson
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $LessonID
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $LessonSID
+    )
+
+    Write-Output ([Lesson]::new($LessonID, $LessonSID))
+}
+
+function New-LessonSelection
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $Selection
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $LessonID
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Int] $LessonSID
+    )
+
+    Write-Output ([LessonSelection]::new($Selection, $LessonID, $LessonSid))
 }

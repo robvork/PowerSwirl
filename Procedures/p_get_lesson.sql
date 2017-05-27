@@ -48,6 +48,6 @@ BEGIN
 	ELSE
 		SET @lb_lesson_exists = 1;
 
-	SELECT @li_lesson_sid, @lb_lesson_exists;
+	SELECT @li_lesson_sid AS lessonSid, @lb_lesson_exists AS lessonExists;
 END
 GO

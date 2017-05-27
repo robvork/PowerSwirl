@@ -48,6 +48,6 @@ BEGIN
 	ELSE
 		SET @lb_course_exists = 1;
 
-	SELECT @li_course_sid, @lb_course_exists;
+	SELECT @li_course_sid AS courseSID, @lb_course_exists AS courseExists;
 END
 GO

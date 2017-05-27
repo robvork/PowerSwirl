@@ -33,8 +33,8 @@ Initial submission
 *******************************************************************************/
 BEGIN
 	SELECT ROW_NUMBER() OVER (ORDER BY course_id) AS selection
-		 , course_id
-		 , course_sid 
+		 , course_id AS courseID
+		 , course_sid AS courseSID
 	FROM dbo.course_hdr
 	;
 
