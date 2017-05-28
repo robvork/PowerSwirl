@@ -54,20 +54,20 @@ InModuleScope PowerSwirl {
             )
             VALUES 
               (1,1,1,'A1 S1',0,0,0)
-            , (1,1,2,'A1 S1',0,0,0)
-            , (1,1,3,'A1 S1',0,0,0)
+            , (1,1,2,'A1 S2',0,0,0)
+            , (1,1,3,'A1 S3',0,0,0)
 
             , (2,1,1,'B1 S1',0,0,0)
-            , (2,1,2,'B1 S1',0,0,0)
-            , (2,1,3,'B1 S1',0,0,0)
-            , (2,1,4,'B1 S1',0,0,0)
+            , (2,1,2,'B1 S2',0,0,0)
+            , (2,1,3,'B1 S3',0,0,0)
+            , (2,1,4,'B1 S4',0,0,0)
             
             , (3,1,1,'C1 S1',0,0,0)
-            , (3,1,2,'C1 S1',0,0,0)
-            , (3,1,3,'C1 S1',0,0,0)
-            , (3,1,4,'C1 S1',0,0,0)
-            , (3,1,5,'C1 S1',0,0,0)
-            , (3,1,6,'C1 S1',0,0,0)
+            , (3,1,2,'C1 S2',0,0,0)
+            , (3,1,3,'C1 S3',0,0,0)
+            , (3,1,4,'C1 S4',0,0,0)
+            , (3,1,5,'C1 S5',0,0,0)
+            , (3,1,6,'C1 S6',0,0,0)
             ;
             "
             $Params["Query"] = $Query 
@@ -246,9 +246,156 @@ InModuleScope PowerSwirl {
     }
 
     Describe "Get-LessonContent" {
-	    It "should..." {
+        BeforeAll {
+            $Params = @{
+                ServerInstance=$TestServerInstance;
+                Database=$TestDatabase;
+            }
+            $Query = "TRUNCATE TABLE dbo.lesson_dtl;"
+            $Params["Query"] = $Query
+            Invoke-Sqlcmd2 @Params
 
-	    }
+            $Query = "INSERT INTO dbo.lesson_dtl 
+            (
+                course_sid
+            ,   lesson_sid
+            ,   step_num
+            ,   step_prompt
+
+            ,   requires_input_flag
+            ,   execute_code_flag
+            ,   store_var_flag
+            
+            ,   variable
+            ,   solution
+            )
+            VALUES 
+              (1,1,1,'A1 S1',1,0,0, NULL, 'A_ans1')
+            , (1,1,2,'A1 S2',1,1,0, NULL, 'A_ans2')
+            , (1,1,3,'A1 S3',0,0,0, NULL, NULL)
+            , (1,1,4,'A1 S4',1,0,1, 'A_var4', 'A_ans4')
+            , (1,1,5,'A1 S5',0,0,0, NULL, NULL)
+
+            , (2,1,1,'B1 S1',0,0,0, NULL, NULL)
+            , (2,1,2,'B1 S2',1,0,1, 'B_var2', 'B_ans2')
+            , (2,1,3,'B1 S3',0,1,1, 'B_var3', 'B_ans3')
+            , (2,1,4,'B1 S4',1,0,1, 'B_var4', 'B_ans4')
+            ;
+            "
+            $Params["Query"] = $Query 
+            Invoke-Sqlcmd2 @Params
+
+
+            $CourseContentA1 = Get-LessonContent -ServerInstance $TestServerInstance -Database $TestDatabase -CourseSid 1 -LessonSid 1
+            $CourseContentB1 = Get-LessonContent -ServerInstance $TestServerInstance -Database $TestDatabase -CourseSid 2 -LessonSid 1
+        }
+	    Context "Course A Lesson A1" {
+            It "should write 5 objects to the pipeline" {
+                $CourseContentA1.Count | Should be 5
+            }
+
+            $tc = @(
+                @{propertyName='stepNum'}
+                @{propertyName='stepPrompt'}
+                @{propertyName='requiresInput'}
+                @{propertyName='executeCode'}
+                @{propertyName='storeVar'}
+                @{propertyName='variable'}
+                @{propertyName='solution'}
+            )
+            It "should write objects that have a '<propertyName>' property" -TestCases $tc {
+                param 
+                (
+                    [String] $propertyName
+                )
+                $propertyName | Should BeIn ($CourseContentA1 | 
+                                                Get-Member -MemberType Properties | 
+                                                Select-Object -ExpandProperty Name 
+                                            )
+            }
+
+            $tc = @(
+                @{propertyName='stepNum'; expectedType='int'}
+                @{propertyName='stepPrompt'; expectedType='string'}
+                @{propertyName='requiresInput'; expectedType='bool'}
+                @{propertyName='executeCode'; expectedType='bool'}
+                @{propertyName='storeVar'; expectedType='bool'}
+            )
+            It "should write <propertyName> as type <expectedType>" -TestCases $tc {
+                param
+                (
+                    [String] $propertyName
+                ,
+                    [String] $expectedType
+                )
+                
+                Invoke-Expression "`$CourseContentA1 | Select-Object -ExpandProperty $propertyName | Should BeOfType [$expectedType]"
+            }
+
+            
+            $tc = @(
+                @{propertyName='variable'; expectedType='string'}
+                @{propertyName='solution'; expectedType='string'}
+            )
+            It "should write <propertyName> as <expectedType> or `$null" -TestCases $tc {
+                param
+                (
+                    [String] $propertyName
+                ,
+                    [String] $expectedType
+                )
+                
+                Invoke-Expression "`$CourseContentA1 | 
+                                    Where-Object {`$_.$propertyName} | 
+                                    Select-Object -ExpandProperty $propertyName | 
+                                    Should BeOfType [$expectedType]"
+            }
+
+            $answersCSV = 
+@'
+                        stepNum, stepPrompt, requiresInput, executeCode, storeVar, variable, solution
+                        1,"'A1 S1'",$true,$false,$false, $null,"'A_ans1'"
+                        2,"'A1 S2'",$true,$true,$false, $null,"'A_Ans2'"
+                        3,"'A1 S3'",$false,$false,$false, $null,$null
+                        4,"'A1 S4'",$true,$false,$true,"'A_Var4'","'A_Ans4'"
+                        5,"'A1 S5'",$false,$false,$false,$null,$null
+'@
+            $tc = @()
+
+            $answers = ConvertFrom-Csv $answersCSV
+
+            $properties = $answers | 
+                            Get-Member -MemberType Properties | 
+                            Select-Object -ExpandProperty Name | 
+                            Where-Object {$_ -ne "stepNum"}
+
+            foreach($answer in $answers)
+            {
+                foreach($property in $properties)
+                {
+                    $tc += @{stepNum=$answer.stepNum; 
+                             propertyName=$property; 
+                             expectedValue=(iex (iex "`$answer.$property"))}
+                }
+            }
+
+            It "should in step <stepNum> have <propertyName> value = <expectedValue>" -TestCases $tc {
+                param
+                (
+                    [Int] $stepNum
+                ,
+                    [String] $propertyName
+                ,
+                    $expectedValue 
+                )
+                $CourseContentA1 | 
+                    Where-Object {$_.stepNum -eq $stepNum} | 
+                    Select-Object -ExpandProperty $propertyName |
+                    Should be $expectedValue
+            }
+
+                
+        }
     }
 
     Describe "Write-LessonPrompt" {

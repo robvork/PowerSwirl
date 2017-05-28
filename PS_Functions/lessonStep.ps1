@@ -57,7 +57,7 @@ function Get-LessonContent
              "
     $Params["Query"] = $Query
     Write-Verbose "Executing Query =`n$Query" 
-    $LessonContent = Invoke-SqlCmd2 @params
+    $LessonContent = Invoke-SqlCmd2 @params -As PSObject
 
     Write-Output $LessonContent 
 }

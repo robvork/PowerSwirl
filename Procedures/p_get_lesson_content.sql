@@ -52,11 +52,11 @@ Initial submission
 BEGIN
 	
 	SELECT 
-		   step_num AS step_num
-		  ,step_prompt AS step_prompt
-		  ,requires_input_flag AS requires_input
-		  ,execute_code_flag AS execute_code
-		  ,store_var_flag AS store_var 
+		   step_num AS stepNum
+		  ,step_prompt AS stepPrompt
+		  ,requires_input_flag AS requiresInput
+		  ,execute_code_flag AS executeCode
+		  ,store_var_flag AS storeVar
 		  ,variable AS variable
 		  ,solution AS solution
 	FROM 
