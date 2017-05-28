@@ -43,14 +43,10 @@ BEGIN
 		);
 
 	SELECT ROW_NUMBER() OVER (ORDER BY l_hdr.lesson_id) AS selection
-		   , c_dtl.lesson_sid AS lessonSID
+		   , l_hdr.lesson_sid AS lessonSID
 		   , l_hdr.lesson_id AS lessonID
-	FROM dbo.course_dtl AS c_dtl
-		 INNER JOIN dbo.lesson_hdr AS l_hdr
-			ON c_dtl.course_sid = l_hdr.course_sid
-			   AND
-			   c_dtl.lesson_sid = l_hdr.lesson_sid
-	WHERE c_dtl.course_sid = @ai_course_sid
+	FROM dbo.lesson_hdr AS l_hdr
+	WHERE l_hdr.course_sid = @ai_course_sid
 	;
 
 END

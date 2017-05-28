@@ -233,10 +233,10 @@ function Get-LessonSelections
         [string]
         $Database
 
-     ,    
+     <#
         [string]
         $CourseID
-
+     #>
      , 
         [int]
         $CourseSID
