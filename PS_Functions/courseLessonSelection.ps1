@@ -112,6 +112,47 @@ function Test-PSwirlCourse
     }
 }
 
+function Get-Lesson 
+{
+    [CmdletBinding()]
+    param
+    (
+        [String] $ServerInstance 
+    ,
+        [String] $Database
+    ,
+        [Int] $CourseSID 
+    ,
+        [String] $LessonID
+    )
+
+    try
+    {
+        Test-SQLServerInstance $ServerInstance
+        Test-SQLServerDatabase -ServerInstance $ServerInstance -Database $Database 
+        
+        if($CourseSID -eq $null)
+        {
+            throw "Course must be not null"
+        }
+
+        if($LessonID -eq "" -or $LessonID -eq $null)
+        {
+            throw "Lesson must be not null and not empty"
+        }
+        
+        $Query = "EXECUTE dbo.p_get_lesson @ai_course_sid = $CourseSID, @as_lesson_id = '$LessonID'"
+        $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
+        $TestResult | 
+            Select-Object LessonExists, LessonSID |
+            Write-Output   
+    }
+    catch
+    {
+        throw $_.Exception.Message 
+    }
+}
+
 function Test-PSwirlLesson
 {
      param
@@ -122,19 +163,11 @@ function Test-PSwirlLesson
     ,   $LessonID 
     )
 
-    if($LessonID -eq "" -or $LessonID -eq $null)
-    {
-        throw "Lesson must be not null and not empty"
-    }
+    $TestResult = Get-Course @PSBoundParameters
 
-    $Query = "EXECUTE dbo.p_get_lesson 
-                   @ai_course_sid = $CourseSid
-              ,    @as_lesson_id = '$LessonID'
-                   "
-    $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query
-    if($TestResult.lesson_exists)
+    if($TestResult.LessonExists)
     {
-        Write-Output $TestResult.lesson_sid
+        Write-Output $TestResult.LessonSID
     }
     else
     {
