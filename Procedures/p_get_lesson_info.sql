@@ -33,8 +33,8 @@ Comment :
 Initial submission
 *******************************************************************************/
 BEGIN
-	SELECT   c_hdr.course_id
-		   , l_hdr.lesson_id
+	SELECT   c_hdr.course_id AS courseID
+		   , l_hdr.lesson_id AS lessonID
 		   ,
 		   (  
 				SELECT COUNT(*) 
@@ -42,7 +42,7 @@ BEGIN
 				WHERE l_dtl.course_sid = l_hdr.course_sid
 					AND
 					l_dtl.lesson_sid = l_hdr.lesson_sid
-		   ) AS step_count
+		   ) AS stepCount
 	FROM 
 		 dbo.lesson_hdr AS l_hdr
 		 INNER JOIN 
