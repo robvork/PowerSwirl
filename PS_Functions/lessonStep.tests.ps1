@@ -396,6 +396,110 @@ InModuleScope PowerSwirl {
 
                 
         }
+        Context "Course B Lesson B1" {
+            It "should write 4 objects to the pipeline" {
+                $CourseContentB1.Count | Should be 4
+            }
+
+            $tc = @(
+                @{propertyName='stepNum'}
+                @{propertyName='stepPrompt'}
+                @{propertyName='requiresInput'}
+                @{propertyName='executeCode'}
+                @{propertyName='storeVar'}
+                @{propertyName='variable'}
+                @{propertyName='solution'}
+            )
+            It "should write objects that have a '<propertyName>' property" -TestCases $tc {
+                param 
+                (
+                    [String] $propertyName
+                )
+                $propertyName | Should BeIn ($CourseContentB1 | 
+                                                Get-Member -MemberType Properties | 
+                                                Select-Object -ExpandProperty Name 
+                                            )
+            }
+
+            $tc = @(
+                @{propertyName='stepNum'; expectedType='int'}
+                @{propertyName='stepPrompt'; expectedType='string'}
+                @{propertyName='requiresInput'; expectedType='bool'}
+                @{propertyName='executeCode'; expectedType='bool'}
+                @{propertyName='storeVar'; expectedType='bool'}
+            )
+            It "should write <propertyName> as type <expectedType>" -TestCases $tc {
+                param
+                (
+                    [String] $propertyName
+                ,
+                    [String] $expectedType
+                )
+                
+                Invoke-Expression "`$CourseContentB1 | Select-Object -ExpandProperty $propertyName | Should BeOfType [$expectedType]"
+            }
+
+            
+            $tc = @(
+                @{propertyName='variable'; expectedType='string'}
+                @{propertyName='solution'; expectedType='string'}
+            )
+            It "should write <propertyName> as <expectedType> or `$null" -TestCases $tc {
+                param
+                (
+                    [String] $propertyName
+                ,
+                    [String] $expectedType
+                )
+                
+                Invoke-Expression "`$CourseContentB1 | 
+                                    Where-Object {`$_.$propertyName} | 
+                                    Select-Object -ExpandProperty $propertyName | 
+                                    Should BeOfType [$expectedType]"
+            }
+
+            $answersCSV = 
+@'
+                        stepNum, stepPrompt, requiresInput, executeCode, storeVar, variable, solution
+                         1,"'B1 S1'",$false,$false,$false, $null, $null
+                         2,"'B1 S2'",$true,$false,$true, "'B_var2'", "'B_ans2'"
+                         3,"'B1 S3'",$false,$true,$true, "'B_var3'", "'B_ans3'"
+                         4,"'B1 S4'",$true,$false,$true, "'B_var4'", "'B_ans4'"
+'@
+            $tc = @()
+
+            $answers = ConvertFrom-Csv $answersCSV
+
+            $properties = $answers | 
+                            Get-Member -MemberType Properties | 
+                            Select-Object -ExpandProperty Name | 
+                            Where-Object {$_ -ne "stepNum"}
+
+            foreach($answer in $answers)
+            {
+                foreach($property in $properties)
+                {
+                    $tc += @{stepNum=$answer.stepNum; 
+                             propertyName=$property; 
+                             expectedValue=(iex (iex "`$answer.$property"))}
+                }
+            }
+
+            It "should in step <stepNum> have <propertyName> value = <expectedValue>" -TestCases $tc {
+                param
+                (
+                    [Int] $stepNum
+                ,
+                    [String] $propertyName
+                ,
+                    $expectedValue 
+                )
+                $CourseContentB1 | 
+                    Where-Object {$_.stepNum -eq $stepNum} | 
+                    Select-Object -ExpandProperty $propertyName |
+                    Should be $expectedValue
+            }
+        }
     }
 
     Describe "Write-LessonPrompt" {
@@ -410,10 +514,108 @@ InModuleScope PowerSwirl {
 	    }
     }
 
-    Describe "Test-StepInput" {
-	    It "should..." {
+    Describe "Test-StepInput" -Tag TestStepInput {
+        BeforeAll {
+            $ErrorMessageDoesNotMatch = "Input does not match solution"
+        }
+        Context "Single character" {
+            It "should not throw if the answer and input are single characters that match" {
+                {Test-StepInput -UserInput 'a' -Solution 'a'} | Should not throw
+	        }
+            
+            It "should not throw if the answer and input are single characters that differ only in casing" {
+                {Test-StepInput -UserInput 'a' -Solution 'A'} | Should not throw
+	        }
 
-	    }
+            It "should not throw if the answer is an integer and the input is the same integer but in string form" {
+                {Test-StepInput -UserInput '1' -Solution 1} | Should not throw
+	        }
+
+            It "should not throw if the answer is a string representing an integer and the input is the same integer but in non-string form" {
+                {Test-StepInput -UserInput 1 -Solution '1'} | Should not throw
+	        }
+                
+            It "should not throw if the answer and the input differ only in whitespace" {
+                {Test-StepInput -UserInput 'a   ' -Solution 'a'} | Should not throw
+            }
+
+            It "should throw if the answer and input are single characters that don't match "{
+                {Test-StepInput -UserInput 'a' -Solution 'b'} | Should throw $ErrorMessageDoesNotMatch
+            }
+
+            It "should throw if the answer is a single character and the input is null" {
+                {Test-StepInput -UserInput $null -Solution 'a'} | Should throw $ErrorMessageDoesNotMatch
+            }
+        }
+
+        Context "Multiple characters" {
+            It "should not throw if the answer and the input are multiple-character strings that match exactly" {
+                {Test-StepInput -UserInput "Cashews" -Solution "Cashews"} | Should not throw
+            }
+
+            It "should not throw if the answer and the input are multiple character strings differ only in casing" {
+                {Test-StepInput -UserInput "CaShEwS" -Solution "cashews"} | Should not throw
+            }
+
+            It "should not throw if the answer and the input are the same except for whitespace" {
+                {Test-StepInput -UserInput "      cashews    " -Solution "cashews"} | Should not throw
+            }
+
+            It "should throw if the answer and the input are different strings (disregarding casing and whitespace)" {
+                {Test-StepInput -UserInput "peanuts" -Solution "cashews"} | Should throw $ErrorMessageDoesNotMatch
+            }
+
+            It "should throw if the answer is not null and the input is null" {
+                {Test-StepInput -UserInput $null -Solution "cashews"} | Should throw $ErrorMessageDoesNotMatch
+            }
+
+            It "should throw if the answer is null and the input is not null" {
+                {Test-StepInput -UserInput "peanuts" -Solution $null} | Should throw $ErrorMessageDoesNotMatch
+            }
+        }
+
+        Context "Code solution" {
+            It "should not throw when the answer and input are code strings that are exactly the same" {
+                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -First 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+                    Should not throw
+            }
+
+            It "should not throw when the answer and input are code strings that have the same effect, but differ in use of aliases" {
+                {Test-StepInput -UserInput "gci | select -First 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+                    Should not throw
+            }
+
+            It "should not throw when the answer and input are code strings that have the same effect, but differ in use of parameter abbreviations" {
+                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -fir 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+                    Should not throw
+            }
+
+            It "should not throw when the answer and input are code strings that have the same effect, but are achieved in logically different ways" -Pending {
+                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -fir 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+                    Should not throw
+            }
+
+            It "should throw when the answer and input evaluate to integers which are not equal" {
+                {Test-StepInput -UserInput "1+1" -Solution "1*1" -ExecuteCode} | 
+                    Should throw $ErrorMessageDoesNotMatch
+            }
+
+            It "should throw when the answer and input evaluate to strings which are not equal" {
+                {Test-StepInput -UserInput "'abc' + 'xyz'" -Solution "'xyz' + 'abc'" -ExecuteCode} | 
+                    Should throw $ErrorMessageDoesNotMatch
+            }
+          
+            It "should throw when the answer and input put different kinds of objects into the pipeline" {
+                {Test-StepInput -UserInput "gci | select -first 1" -Solution "gsv | select -first 1" -ExecuteCode} | 
+                    Should throw $ErrorMessageDoesNotMatch
+            }
+
+            It "should throw when the answer and input which put different numbers of objects into the pipeline" {
+                {Test-StepInput -UserInput "gci | select -first 1" -Solution "gci | select -first 2" -ExecuteCode} | 
+                    Should throw $ErrorMessageDoesNotMatch
+            }
+        }
+	    
     }
 
     Describe "Write-UserIncorrect" {

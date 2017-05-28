@@ -126,6 +126,11 @@ function Test-StepInput
             $UserInput = Invoke-Expression $UserInput
             $Solution = Invoke-Expression $Solution
         }
+        else
+        {
+            $UserInput = $UserInput.Trim()
+            $Solution = $Solution.Trim()
+        }
         
         Write-Verbose "Comparing input to solution"
         $diff = (Compare-Object $UserInput $Solution -ErrorAction Stop | 
