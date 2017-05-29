@@ -170,9 +170,9 @@ InModuleScope PowerSwirl {
         
         Context "Saving two users concurrently" {
             BeforeEach {
+                $UserSid1 = 1
                 $CourseSid1 = 1
                 $LessonSid1 = 2
-                $UserSid1 = 1
                 $StepNum1 = 4
 
                 $Params = @{
@@ -185,9 +185,9 @@ InModuleScope PowerSwirl {
                 }
                 Save-Lesson @Params
 
+                $UserSid2 = 2
                 $CourseSid2 = 2
                 $LessonSid2 = 1
-                $UserSid2 = 2
                 $StepNum2 = 8
 
                 $Params["CourseSid"] = $CourseSid2
@@ -213,6 +213,7 @@ InModuleScope PowerSwirl {
                 @{userSid=1}
                 @{userSid=2}
             )
+
             It "should insert exactly one row into user_pause_state for user sid <userSid>" -TestCases $tc {
                 param
                 (
@@ -226,6 +227,120 @@ InModuleScope PowerSwirl {
                 }
                 $rc = Invoke-Sqlcmd2 @Params -As PSObject | Select-Object -ExpandProperty rc
                 $rc | Should be 1
+            }
+
+            $tc = @(
+                @{userSid=1; columnName="user_sid"; expectedValue=$UserSid1}
+                @{userSid=1; columnName="course_sid"; expectedValue=$CourseSid1}
+                @{userSid=1; columnName="lesson_sid"; expectedValue=$LessonSid1}
+                @{userSid=1; columnName="step_num"; expectedValue=$StepNum1}
+                @{userSid=2; columnName="user_sid"; expectedValue=$UserSid2}
+                @{userSid=2; columnName="course_sid"; expectedValue=$CourseSid2}
+                @{userSid=2; columnName="lesson_sid"; expectedValue=$LessonSid2}
+                @{userSid=2; columnName="step_num"; expectedValue=$StepNum2}
+            )
+            It "should set in user_pause_state: <columnName> = <expectedValue> for user <userSid>" -TestCases $tc {
+                param
+                (
+                    [Int] $userSid
+                ,
+                    [String] $columnName
+                ,
+                    [Int] $expectedValue
+                )
+
+                $Query = "SELECT user_sid
+                        ,        course_sid
+                        ,        lesson_sid
+                        ,        step_num 
+                          FROM 
+                                 dbo.user_pause_state 
+                          WHERE  
+                                 user_sid = $UserSid
+                        ;"
+
+                $Params = @{
+                    ServerInstance=$TestServerInstance;
+                    Database=$TestDatabase;
+                    Query=$Query; 
+                }
+
+                Invoke-Sqlcmd2 @Params | 
+                Select-Object -ExpandProperty $columnName | 
+                Should be $expectedValue
+            }
+
+            $tc = @(
+                @{
+                     courseSid=$courseSid1; 
+                     lessonSid=$lessonSid1;
+                     userSid=$userSid1; 
+                     columnName="step_num"; 
+                     expectedValue=$StepNum1;
+                 }
+
+                @{
+                     courseSid=$courseSid1;
+                     lessonSid=$lessonSid1; 
+                     userSid=$userSid1; 
+                     columnName="lesson_in_progress_flag"; 
+                     expectedValue=$true;
+                 }
+
+                @{
+                     courseSid=$courseSid2;
+                     lessonSid=$lessonSid2; 
+                     userSid=$userSid2; 
+                     columnName="step_num"; 
+                     expectedValue=$StepNum2
+                 }
+
+                @{
+                     courseSid=$courseSid2;
+                     lessonSid=$lessonSid2; 
+                     userSid=$userSid2; 
+                     columnName="lesson_in_progress_flag"; 
+                     expectedValue=$true
+                 }
+            )
+            It "should set in user_course: <columnName> = <expectedValue> for user <userSid>" -TestCases $tc  {
+                param
+                (
+                    [Int] $courseSid
+                ,
+                    [Int] $lessonSid
+                ,
+                    [Int] $userSid
+                ,
+                    [String] $columnName
+                ,
+                    [Int] $expectedValue
+                )
+
+                $Query = "SELECT user_sid
+                        ,        course_sid
+                        ,        lesson_sid
+                        ,        step_num 
+                        ,        lesson_in_progress_flag
+                          FROM 
+                                 dbo.user_course
+                          WHERE  
+                                 user_sid = $UserSid
+                            AND
+                                 course_sid = $CourseSid
+                            AND 
+                                 lesson_sid = $LessonSid
+                        ;"
+
+                $Params = @{
+                    ServerInstance=$TestServerInstance;
+                    Database=$TestDatabase;
+                    Query=$Query; 
+                }
+
+                Invoke-Sqlcmd2 @Params | 
+                Select-Object -ExpandProperty $columnName | 
+                Should be $expectedValue
             }
         }
         
