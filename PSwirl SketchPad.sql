@@ -101,7 +101,7 @@ FROM dbo.course_hdr AS C_hdr
 			AND 
 			l_dtl.lesson_sid = l_hdr.lesson_sid 
 	) AS SC
-WHERE course_sid IN (1, 3, 5) AND lesson_sid = (course_sid + 1)/ 2 
+WHERE L_hdr.course_sid IN (1, 3, 5) 
 ORDER BY L_hdr.course_sid, L_hdr.lesson_sid
 
 SELECT * 
@@ -110,7 +110,9 @@ WHERE course_sid IN (1, 3, 5)
 
 SELECT *
 FROM dbo.lesson_hdr 
-WHERE course_sid IN (1, 3, 5) AND lesson_sid = (course_sid + 1)/ 2 
+WHERE course_sid IN (1, 3, 5) 
 
 SELECT * 
 FROM dbo.lesson_dtl 
+
+TRUNCATE TABLE dbo.user_pause_state

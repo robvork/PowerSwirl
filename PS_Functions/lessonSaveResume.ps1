@@ -67,28 +67,36 @@ function Resume-Lesson
         Database=$Database;
     }
 
-    Write-Verbose "Getting pause info"
-    $Query = "EXECUTE dbo.p_get_pause_info 
-                      @ai_user_sid = $UserSid
-             "
-    $Params["Query"] = $Query 
-    Write-Verbose "Executing Query =`n$Query"
-    $PauseInfo = Invoke-Sqlcmd2 @Params
-    $CourseSid = $PauseInfo.course_sid 
-    $LessonSid = $PauseInfo.lesson_sid 
-    $StepNum = $PauseInfo.step_num
-    Write-Verbose "CourseSid = $CourseSid"
-    Write-Verbose "LessonSid = $LessonSid"
-    Write-Verbose "StepNum = $StepNum"
+    try
+    {
+        Write-Verbose "Getting pause info"
+        $Query = "EXECUTE dbo.p_get_pause_info 
+                          @ai_user_sid = $UserSid
+                 "
+        $Params["Query"] = $Query 
+        Write-Verbose "Executing Query =`n$Query"
+        $PauseInfo = Invoke-Sqlcmd2 @Params
 
-    $Params.Remove("Query")
-    $Params["CourseSid"] = $CourseSid 
-    $Params["LessonSid"] = $LessonSid 
-    $Params["StepNum"] = $StepNum
-    $Params["DisableForcePause"] = $true
-    $Params["UserSid"] = $UserSid 
+        $CourseSid = $PauseInfo.courseSid 
+        $LessonSid = $PauseInfo.lessonSid 
+        $StepNum = $PauseInfo.stepNum
+        Write-Verbose "CourseSid = $CourseSid"
+        Write-Verbose "LessonSid = $LessonSid"
+        Write-Verbose "StepNum = $StepNum"
 
-    Start-PowerSwirlLesson @Params
+        $Params.Remove("Query")
+        $Params["CourseSid"] = $CourseSid 
+        $Params["LessonSid"] = $LessonSid 
+        $Params["StepNum"] = $StepNum
+        $Params["DisableForcePause"] = $true
+        $Params["UserSid"] = $UserSid 
+
+        Start-PowerSwirlLesson @Params
+    }
+    catch
+    {
+        throw $_.Exception.Message 
+    }
 }
 
 Set-Alias -Name nxt -Value Resume-Lesson

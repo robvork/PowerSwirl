@@ -33,13 +33,16 @@ Initial submission
 *******************************************************************************/
 BEGIN
 	
-	SELECT course_sid
-		 , lesson_sid
-		 , step_num 
+	SELECT course_sid AS courseSid
+		 , lesson_sid AS lessonSid
+		 , step_num AS stepNum
 	FROM dbo.user_pause_state
 	WHERE 
 		  [user_sid] = @ai_user_sid
 	;
+
+	IF @@ROWCOUNT = 0
+		RAISERROR('User does not have any pause state active', 16, 1);
 
 END
 GO
