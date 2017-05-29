@@ -190,7 +190,7 @@ function Start-PowerSwirlLesson
         ,
         [Int] $UserSid
         ,
-        [String] $StepNumStart = 1
+        [Int] $StepNumStart = 1
         ,
         [Switch] $DisableForcePause
     )

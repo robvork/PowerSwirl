@@ -347,8 +347,72 @@ InModuleScope PowerSwirl {
     }
 
     Describe "Resume-Lesson" {
-	    It "should..." {
+        $UserSid1 = 1
+        $CourseSid1 = 2
+        $LessonSid1 = 1
+        $StepNum1 = 19
 
+        $UserSid2 = 2
+        $CourseSid2 = 1
+        $LessonSid2 = 3
+        $StepNum2 = 6
+            
+        $UserSid3 = 3
+        $CourseSid3 = 5
+        $LessonSid3 = 6
+        $StepNum3 = 24
+
+        BeforeEach {
+            $Query = "TRUNCATE TABLE dbo.user_pause_state;"
+            $Params = @{
+                ServerInstance=$TestServerInstance;
+                Database=$TestDatabase;
+                Query=$Query; 
+            }
+
+            Invoke-Sqlcmd2 @Params
+
+            $Query = "INSERT INTO dbo.user_pause_state
+            (
+                user_sid
+            ,   course_sid
+            ,   lesson_sid
+            ,   step_num
+            )
+            VALUES 
+              ($UserSid1, $CourseSid1, $LessonSid1, $StepNum1)
+            , ($UserSid2, $CourseSid2, $LessonSid2, $StepNum2)
+            , ($UserSid3, $CourseSid3, $LessonSid3, $StepNum3)
+            "
+
+            $Params["Query"] = $Query 
+            Invoke-Sqlcmd2 @Params
+        }
+        Mock Start-PowerSwirlLesson {"$userSid,$courseSid,$lessonSid,$stepNum"} -Verifiable -ModuleName PowerSwirl
+
+        $tc = @(
+               @{userSidExpected=$UserSid1; courseSidExpected=$CourseSid1; lessonSidExpected=$lessonSid1; stepNumExpected=$stepNum1}
+               @{userSidExpected=$UserSid2; courseSidExpected=$CourseSid2; lessonSidExpected=$lessonSid2; stepNumExpected=$stepNum2}
+               @{userSidExpected=$UserSid3; courseSidExpected=$CourseSid3; lessonSidExpected=$lessonSid3; stepNumExpected=$stepNum3}
+        )
+	    It "should call Start-PowerSwirl with courseSid=<courseSidExpected>, lessonSid=<lessonSidExpected>, stepNum=<stepNumExpected> for user <userSidExpected>" -TestCases $tc {
+            param
+            (
+                [Int] $userSidExpected 
+            ,
+                [Int] $courseSidExpected
+            ,
+                [Int] $lessonSidExpected
+            ,
+                [Int] $stepNumExpected
+            )
+            Resume-Lesson -ServerInstance $TestServerInstance -Database $TestDatabase -UserSid $userSidExpected 
+            Assert-MockCalled Start-PowerSwirlLesson -Scope It -ExclusiveFilter  {
+                $UserSid -eq $UserSidExpected -and 
+                $CourseSid -eq $CourseSidExpected -and 
+                $LessonSid -eq $LessonSidExpected -and
+                $StepNumStart -eq $StepNumExpected
+            }
 	    }
     }
 }

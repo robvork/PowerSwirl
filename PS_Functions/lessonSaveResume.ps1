@@ -87,7 +87,7 @@ function Resume-Lesson
         $Params.Remove("Query")
         $Params["CourseSid"] = $CourseSid 
         $Params["LessonSid"] = $LessonSid 
-        $Params["StepNum"] = $StepNum
+        $Params["StepNumStart"] = $StepNum
         $Params["DisableForcePause"] = $true
         $Params["UserSid"] = $UserSid 
 
