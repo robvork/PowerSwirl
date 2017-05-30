@@ -10,7 +10,7 @@ class LessonSelection : MenuSelection
 
     [String] ToString() 
     {
-        return $this.Selection.ToString() + ": " + $this.LessonID
+        return $this.Selection.ToString() + ": " + $this.Lesson.LessonID
     }
 
     [bool] Equals([Object] $other)

@@ -30,12 +30,13 @@ function Start-PowerSwirl
     )
 
     #region initialize information stream
-    Write-Verbose "Initializing information stream variable for output"
+    Write-Verbose "<* Initializing information stream variable for output"
     $InformationAction = Initialize-PSwirlStream
+    Write-Verbose "*> Initialization complete. InformationAction = $InformationAction"
     #endregion 
     
     #region validating/determining lesson parameters
-    Write-Verbose "Validating parameters and reprompting for input whenever necessary"
+    Write-Verbose "<* Determining and validating parameter values"
 
     # Determine ServerInstance
     #region validate or get ServerInstance
@@ -44,22 +45,24 @@ function Start-PowerSwirl
         $ServerInstance = Read-SQLServerInstance
     }
 
+    Write-Verbose "`t<* Validating ServerInstance"
     do
     {
         try
         {
-            Write-Verbose "Validating ServerInstance"
             Test-SQLServerInstance $ServerInstance -ErrorAction SilentlyContinue
-            Write-Verbose "ServerInstance valid"
+            Write-Verbose "`t*> ServerInstance valid"
             break
         }
         catch
         {
-            Write-Verbose "ServerInstance invalid. Getting new value"
+            Write-Verbose "`t* ServerInstance invalid. Getting new value"
             Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $ServerInstance = Read-SQLServerInstance
         }
     } while($true) 
+
+    Write-Verbose "`tUsing ServerInstance = $ServerInstance"
     #endregion
 
     # Determine Database
@@ -73,18 +76,20 @@ function Start-PowerSwirl
     {
         try
         {
-            Write-Verbose "Validating Database"
+            Write-Verbose "`t<* Validating Database"
             Test-SQLServerDatabase -ServerInstance $ServerInstance -Database $Database
-            Write-Verbose "Database valid"
+            Write-Verbose "`t*> Database valid"
             break
         }
         catch
         {
-            Write-Verbose "Database invalid. Getting new value"
+            Write-Verbose "`t*Database invalid. Getting new value"
             Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $Database = Read-SQLServerDatabase
         }
     } while ($true)
+
+    Write-Verbose "`tUsing Database=$Database"
     #endregion
 
     # Determine user
@@ -98,19 +103,20 @@ function Start-PowerSwirl
     {
         try
         {
-            Write-Verbose "Validating user '$User'"
+            Write-Verbose "`t<* Validating user '$User'"
             $UserSid = Test-PSwirlUser -ServerInstance $ServerInstance -Database $Database -User $User
-            Write-Verbose "User valid"
-            Write-verbose "Using UserSid = $UserSid" 
+            Write-Verbose "`t*> User valid" 
             break
         }
         catch
         {
-            Write-Verbose "User invalid. Getting new value"
+            Write-Verbose "`t* User invalid. Getting new value"
             Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             $User = Read-PSwirlUser
         }
     } while ($true)
+
+    Write-Verbose "`tUsing User= $User, UserSid = $UserSid"
     #endregion
 
     # Determine course
@@ -118,13 +124,13 @@ function Start-PowerSwirl
     $CourseSelections = Get-CourseSelections -ServerInstance $ServerInstance -Database $Database 
     try
     {
-        Write-Verbose "Validating course"
+        Write-Verbose "`t<* Validating course"
         $CourseSid = Test-PSwirlCourse -ServerInstance $ServerInstance -Database $Database -CourseID $CourseID
-        Write-Verbose "Course valid"
+        Write-Verbose "`t*> Course valid"
     }
     catch
     {
-        Write-Verbose "Course not valid. Prompting user with available courses and requesting selection"
+        Write-Verbose "`t* Course not valid. Prompting user with available courses and requesting selection"
         do 
         {
             try
@@ -132,12 +138,12 @@ function Start-PowerSwirl
                 Write-CourseSelections $CourseSelections -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
                 Test-MenuSelection -MenuSelections $CourseSelections -MenuSelection $Selection
+                Write-Verbose "`t*> Course selection valid"
                 $CourseSid = $CourseSelections | 
                                 Where-Object -FilterScript {$_.Selection -eq $Selection.Selection} |
                                 Select-Object -ExpandProperty Course | 
                                 Select-Object -ExpandProperty CourseSID
-                Write-Verbose "Using CourseSid = $CourseSid"
-
+                
                 break
             }
             catch
@@ -147,6 +153,8 @@ function Start-PowerSwirl
             }
         } while ($true)
     }
+
+    Write-Verbose "`tUsing CourseSid = $CourseSid"
     #endregion
 
     # Determine lesson
@@ -154,9 +162,9 @@ function Start-PowerSwirl
     $LessonSelections = Get-LessonSelections -ServerInstance $ServerInstance -Database $Database -CourseSID $CourseSid
     try
     {
-        Write-Verbose "Validating lesson"
+        Write-Verbose "`t<* Validating lesson"
         $LessonSid = Test-PSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonID $LessonID
-        Write-Verbose "Lesson valid"
+        Write-Verbose "`t*> Lesson valid"
     }
     catch
     {
@@ -172,7 +180,7 @@ function Start-PowerSwirl
                                 Where-Object -FilterScript {$_.selection -eq $Selection} |
                                 Select-Object -ExpandProperty Lesson | 
                                 Select-Object -ExpandProperty LessonSID
-                Write-Verbose "Using LessonSid = $LessonSid"
+                
                  
                 break
             }
@@ -183,12 +191,15 @@ function Start-PowerSwirl
             }
         } while ($true)
     }
+    Write-Verbose "`tUsing LessonSid = $LessonSid"
+    Write-Verbose "#> Determination and validation complete"
     #endregion
 
     #endregion
 
     #region starting lesson 
     Write-Verbose "Starting PowerSwirl lesson with CourseSid = $CourseSid, LessonSid = $LessonSid, UserSid = $UserSid"
+    return
     Start-PowerSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonSid $LessonSid -UserSid $UserSid -StepNum 1
     #endregion
 

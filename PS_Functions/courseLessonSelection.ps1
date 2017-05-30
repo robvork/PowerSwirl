@@ -44,9 +44,9 @@ function Write-CourseSelections
 
     Write-Information -MessageData $CourseSelections.Length -Tags CourseCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a course from the following" -Tags PreSelection
-    foreach($Course in $CourseSelections)
+    foreach($CourseSelection in $CourseSelections)
     {
-        Write-Information -MessageData $Course.ToString() -Tags CourseSelectionString
+        Write-Information -MessageData $CourseSelection.ToString() -Tags CourseSelectionString
     }
 }
 
@@ -60,10 +60,9 @@ function Write-LessonSelections
 
     Write-Information -Message $LessonSelections.Length -Tags LessonCount -InformationAction SilentlyContinue
     Write-Information -MessageData "Choose a lesson from the following" -Tags PreSelection
-    foreach($Lesson in $LessonSelections)
+    foreach($LessonSelection in $LessonSelections)
     {
-        $LessonLine = $Lesson.selection.ToString() + ": " + $Lesson.lesson_id
-        Write-Information -MessageData $LessonLine -Tags LessonLine
+        Write-Information -MessageData $LessonSelection.ToString() -Tags LessonSelectionString
     }
 }
 
