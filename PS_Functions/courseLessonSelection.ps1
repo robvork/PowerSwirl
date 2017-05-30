@@ -18,8 +18,15 @@ function Write-RetryPrompt
 
 function Read-MenuSelection
 {
-    $Selection = Read-Host -Prompt "Selection"
-    Write-Output $Selection 
+    try
+    {
+        $Selection = [int](Read-Host -Prompt "Selection")
+        Write-Output (New-MenuSelection $Selection)
+    }
+    catch 
+    {
+        throw "Selection not convertible to int"
+    }
 }
 
 function Write-CourseSelections
@@ -184,7 +191,7 @@ function Test-MenuSelection
     ,   [MenuSelection] $MenuSelection
     )
 
-    if($MenuSelection -notin $MenuSelections)
+    if($MenuSelection.Selection -notin $MenuSelections.Selection)
     {
         throw "Invalid menu selection"
     }

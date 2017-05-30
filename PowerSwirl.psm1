@@ -29,12 +29,16 @@ function Start-PowerSwirl
         $Step
     )
 
+    #region initialize information stream
     Write-Verbose "Initializing information stream variable for output"
     $InformationAction = Initialize-PSwirlStream
-
+    #endregion 
+    
+    #region validating/determining lesson parameters
     Write-Verbose "Validating parameters and reprompting for input whenever necessary"
 
     # Determine ServerInstance
+    #region validate or get ServerInstance
     if($ServerInstance -eq '' -or $ServerInstance -eq $null)
     {
         $ServerInstance = Read-SQLServerInstance
@@ -56,8 +60,10 @@ function Start-PowerSwirl
             $ServerInstance = Read-SQLServerInstance
         }
     } while($true) 
+    #endregion
 
     # Determine Database
+    #region validate or get Database
     if($Database -eq '' -or $Database -eq $null)
     {
         $Database = Read-SQLServerDatabase
@@ -79,8 +85,10 @@ function Start-PowerSwirl
             $Database = Read-SQLServerDatabase
         }
     } while ($true)
-    
+    #endregion
+
     # Determine user
+    #region validate or get User
     if($User -eq '' -or $User -eq $null)
     {
         $User = Read-PSwirlUser
@@ -103,9 +111,11 @@ function Start-PowerSwirl
             $User = Read-PSwirlUser
         }
     } while ($true)
-   
+    #endregion
+
     # Determine course
-    $Courses = Get-CourseHeaders -ServerInstance $ServerInstance -Database $Database 
+    #region validate or get Course
+    $CourseSelections = Get-CourseSelections -ServerInstance $ServerInstance -Database $Database 
     try
     {
         Write-Verbose "Validating course"
@@ -119,12 +129,13 @@ function Start-PowerSwirl
         {
             try
             {
-                Write-CourseHeaders $Courses -InformationAction $InformationAction
+                Write-CourseSelections $CourseSelections -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
-                Test-MenuSelection -MenuObjects $Courses -MenuSelection $Selection
-                $CourseSid = $Courses | 
-                                Where-Object -FilterScript {$_.Selection -eq $Selection} |
-                                Select-Object -ExpandProperty course_sid 
+                Test-MenuSelection -MenuSelections $CourseSelections -MenuSelection $Selection
+                $CourseSid = $CourseSelections | 
+                                Where-Object -FilterScript {$_.Selection -eq $Selection.Selection} |
+                                Select-Object -ExpandProperty Course | 
+                                Select-Object -ExpandProperty CourseSID
                 Write-Verbose "Using CourseSid = $CourseSid"
 
                 break
@@ -136,9 +147,11 @@ function Start-PowerSwirl
             }
         } while ($true)
     }
-    
+    #endregion
+
     # Determine lesson
-    $LessonsInCourse = Get-LessonHeaders -ServerInstance $ServerInstance -Database $Database -CourseSID $CourseSid
+    #region validate or get Lesson
+    $LessonSelections = Get-LessonSelections -ServerInstance $ServerInstance -Database $Database -CourseSID $CourseSid
     try
     {
         Write-Verbose "Validating lesson"
@@ -152,12 +165,13 @@ function Start-PowerSwirl
         {
             try
             {
-                Write-LessonHeaders $LessonsInCourse -InformationAction $InformationAction
+                Write-LessonSelections $LessonSelections -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
-                Test-MenuSelection -MenuObjects $LessonsInCourse -MenuSelection $Selection
-                $LessonSid = $LessonsInCourse | 
+                Test-MenuSelection -MenuSelections $LessonsSelections -MenuSelection $Selection
+                $LessonSid = $LessonSelections | 
                                 Where-Object -FilterScript {$_.selection -eq $Selection} |
-                                Select-Object -ExpandProperty lesson_sid 
+                                Select-Object -ExpandProperty Lesson | 
+                                Select-Object -ExpandProperty LessonSID
                 Write-Verbose "Using LessonSid = $LessonSid"
                  
                 break
@@ -169,9 +183,14 @@ function Start-PowerSwirl
             }
         } while ($true)
     }
+    #endregion
 
+    #endregion
+
+    #region starting lesson 
     Write-Verbose "Starting PowerSwirl lesson with CourseSid = $CourseSid, LessonSid = $LessonSid, UserSid = $UserSid"
     Start-PowerSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonSid $LessonSid -UserSid $UserSid -StepNum 1
+    #endregion
 
 }
 
