@@ -35,6 +35,10 @@ function Start-PowerSwirl
     Write-Verbose "*> Initialization complete. InformationAction = $InformationAction"
     #endregion 
     
+    #region greeting
+    Write-Information "Welcome to PowerSwirl, an interactive shell environment for learning programming skills" -InformationAction $InformationAction
+    #endregion
+
     #region validating/determining lesson parameters
     Write-Verbose "<* Determining and validating parameter values"
 
@@ -168,16 +172,16 @@ function Start-PowerSwirl
     }
     catch
     {
-        Write-Verbose "Lesson not valid. Prompting user with available lessons for chosen course and requesting selection"
+        Write-Verbose "`t* Lesson not valid. Prompting user with available lessons for chosen course and requesting selection"
         do 
         {
             try
             {
                 Write-LessonSelections $LessonSelections -InformationAction $InformationAction
                 $Selection = Read-MenuSelection 
-                Test-MenuSelection -MenuSelections $LessonsSelections -MenuSelection $Selection
+                Test-MenuSelection -MenuSelections $LessonSelections -MenuSelection $Selection
                 $LessonSid = $LessonSelections | 
-                                Where-Object -FilterScript {$_.selection -eq $Selection} |
+                                Where-Object -FilterScript {$_.selection -eq $Selection.Selection} |
                                 Select-Object -ExpandProperty Lesson | 
                                 Select-Object -ExpandProperty LessonSID
                 
@@ -186,7 +190,7 @@ function Start-PowerSwirl
             }
             catch
             {
-                Write-Verbose "Course selection invalid. Getting new value"
+                Write-Verbose "`t* Lesson selection invalid. Getting new value"
                 Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
             }
         } while ($true)
@@ -199,7 +203,7 @@ function Start-PowerSwirl
 
     #region starting lesson 
     Write-Verbose "Starting PowerSwirl lesson with CourseSid = $CourseSid, LessonSid = $LessonSid, UserSid = $UserSid"
-    return
+    
     Start-PowerSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonSid $LessonSid -UserSid $UserSid -StepNum 1
     #endregion
 
@@ -233,9 +237,9 @@ function Start-PowerSwirlLesson
     }
 
     $LessonInfo = Get-LessonInfo @Params
-    $CourseID = $LessonInfo.course_id
-    $LessonID = $LessonInfo.lesson_id
-    $StepCount = $LessonInfo.step_count
+    $CourseID = $LessonInfo.courseID
+    $LessonID = $LessonInfo.lessonID
+    $StepCount = $LessonInfo.stepCount
     Write-Verbose "Course: $CourseID"
     Write-Verbose "Lesson: $LessonID"
     Write-Verbose "Step count: $StepCount"
@@ -247,9 +251,9 @@ function Start-PowerSwirlLesson
     for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
         $CurrentStep = $LessonContent[$StepIdx]
-        $StepNumCurrent = $CurrentStep.step_num
-        $StepPrompt = $CurrentStep.step_prompt
-        $StepRequiresInput = [bool] $CurrentStep.requires_input
+        $StepNumCurrent = $CurrentStep.stepNum
+        $StepPrompt = $CurrentStep.stepPrompt
+        $StepRequiresInput = [bool] $CurrentStep.requiresInput
         Write-Verbose "Lesson step $StepNumCurrent"
 
         Write-LessonPrompt -Prompt $StepPrompt 
@@ -278,7 +282,7 @@ function Start-PowerSwirlLesson
             else
             {
                 $Solution = $CurrentStep.solution
-                $ExecuteCode = [bool] $CurrentStep.execute_code_flag
+                $ExecuteCode = [bool] $CurrentStep.executeCode
                 do
                 {
                     try
@@ -308,8 +312,8 @@ function Start-PowerSwirlLesson
         Write-Verbose "Step completed"
     }
 
-   
     Write-Verbose "Lesson completed"
+    Write-Information "Lesson completed. Type 'Start-PowerSwirl' to explore available lessons or use 'Start-PowerSwirlLesson' with appropriate parameters to start a new lesson."
 }
 
 Set-Alias -Name "psw" -Value "Start-PowerSwirl"

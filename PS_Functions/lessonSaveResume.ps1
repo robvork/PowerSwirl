@@ -40,6 +40,15 @@ function Save-Lesson
     Write-Verbose "Executing Query =`n$Query"
     
     Invoke-Sqlcmd2 @Params 
+
+    $PSDefParamValues = $Global:PSDefaultParameterValues.Clone()
+    $PSDefParamValues["Resume-Lesson:ServerInstance"] = $ServerInstance
+    $PSDefParamValues["Resume-Lesson:Database"] = $Database
+    $PSDefParamValues["Resume-Lesson:UserSid"] = $UserSid
+    $PSDefParamValues["Resume-Lesson:InformationAction"] = $InformationPreference
+    $PSDefParamValues["Resume-Lesson:Verbose"] = $VerbosePreference
+
+    Set-Variable -Name PSDefaultParameterValues -Scope global -Value $PSDefParamValues
 }
 
 function Resume-Lesson

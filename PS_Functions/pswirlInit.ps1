@@ -90,3 +90,6 @@ function Initialize-PSwirlStream
     $InformationAction = "Continue"
     Write-Output $InformationAction 
 }
+
+
+

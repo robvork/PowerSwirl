@@ -20,7 +20,7 @@ function Read-MenuSelection
 {
     try
     {
-        $Selection = [int](Read-Host -Prompt "Selection")
+        $Selection = [int](Read-Host -Prompt "Enter your selection")
         Write-Output (New-MenuSelection $Selection)
     }
     catch 

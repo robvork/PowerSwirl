@@ -77,7 +77,7 @@ function Write-LessonPrompt
         [String] $Prompt
     )
 
-    Write-Information $Prompt 
+    Write-Information ("`n" + $Prompt)
 }
 
 function Read-StepInput
