@@ -357,7 +357,7 @@ function Get-XMLElement
     )
 
    
-    $selection = Invoke-Expression "`$xml.`$element"
+    $selection = Invoke-Expression "`$xml.$element"
     if($selection -eq $null)
     {
         throw "'$element' not found"
@@ -429,57 +429,38 @@ function ConvertTo-LessonXML
     )
 
     Write-Verbose "Converting LessonString to pre-processed XML"
-    $LessonString = [xml] $LessonString
+    $LessonXML = [xml] $LessonString
     
-    Write-Verbose "Checking that the top level object of LessonString is 'lesson'"
-    if("lesson" -notin ($LessonString | 
-                        Get-Member | 
-                        Select-Object -ExpandProperty Name
-                       )
-      )
+    Write-Verbose "Getting lesson object"
+    $Lesson = Get-XMLElement $LessonXML "Lesson"
+
+    Write-Verbose "Getting header of lesson"
+    $Header = Get-XMLElement $Lesson "H"
+
+    Write-Verbose "Getting body of lesson"
+    $Body = Get-XMLElement $Lesson "B"
+
+    Write-Verbose "Getting course name of header"
+    $CourseName = Get-XMLElement $Header "C"
+
+    Write-Verbose "Getting lesson of header"
+    $LessonName = Get-XMLElement $Header "L"
+
+    Write-Verbose "Getting sections of body" 
+    $Sections = Get-XMLElement $Body "S"
+
+    Write-Verbose "Mapping a unique identity to each section name" 
+    $SectionIDToName = @{}
+    for($i = 0; $i -lt $Sections.Length; $i++) 
     {
-        throw "The top level of the lesson to be imported must be an object 'lesson'."
+        $SectionIDToName[$i] = (Get-XMLElement $Sections[$i] "N")
     }
 
-    Write-Verbose "Checking that the lesson object has an element 'H' for the header section"
-    if("H" -notin ($LessonString.Lesson |
-                   Get-Member | 
-                   Select-Object -ExpandProperty Name
-                  )
-      )
-    {
-        throw "The lesson object must contain an element 'H' for the header."
-    }
+    Write-Verbose "Mapping section id to step list"
+    $SectionIDToSteps = @{}
+    $SectionIDToName.Keys | 
+        ForEach-Object {$SectionIDToSteps[$_] = (Get-XMLElement $Sections[$_] "T")}
 
-    Write-Verbose "Checking that the lesson object has an element 'B' for the body section"
-    if("B" -notin ($LessonString.Lesson |
-                   Get-Member | 
-                   Select-Object -ExpandProperty Name
-                  )
-      )
-    {
-        throw "The lesson object must contain an element 'B' for the body."
-    }
+    Write-Verbose "Done"
 
-    Write-Verbose "Checking that the header section contains a 'C' section for course"
-    if("C" -notin ($LessonString.Lesson.H |
-                   Get-Member | 
-                   Select-Object -ExpandProperty Name 
-                  ) 
-      )
-    {
-        throw "The lesson.H object must have a 'C' element for course name"
-    }
-
-    Write-Verbose "Checking that the header section contains a 'L' section for course"
-    if("L" -notin ($LessonString.Lesson.H |
-                   Get-Member | 
-                   Select-Object -ExpandProperty Name 
-                  ) 
-      )
-    {
-        throw "The lesson.H object must have a 'L' element for course name"
-    }
-
-   
 }

@@ -1,0 +1,76 @@
+<Lesson>
+<H>
+    <C> PowerShell </C>
+    <L> Intro to PowerShell </L>
+</H>
+<B>
+    <S>
+        <N> What is PowerShell? </N>
+        <T> 
+            <P> PowerShell is a scripting language originated by Microsoft
+                which can be used in a variety of different scenarios by
+                anyone who knows how to use a computer.
+            </P>
+        </T>
+        <T>
+            <P> What company created PowerShell? </P>
+            <opt> s </opt>
+            <soln> Microsoft </soln>
+        </T>
+        <T>
+            <P> PowerShell can be used for programming full applications in .NET,
+                but it can also be used to perform the everyday computing tasks
+                you usually perform in the Windows GUI.
+            </P>
+        </T>
+        <T>
+            <P> For example, you can search for files on your hard drive
+                easily in PowerShell using the Get-ChildItem command.
+            </P>
+        </T>
+        <T>
+            <P> Using the command 'Get-ChildItem C:\Windows', examine
+                the contents of the Windows directory
+            </P>
+        </T>
+        <T>
+            <P> Referring to the results of executing this command, look
+                for an entry that starts with with the word "Policy". 
+                What is the full name of this entry?
+            </P>
+            <opt>s</opt>
+            <soln>PolicyDefinitions</soln> 
+        </T>
+        <T>
+            <P> As a more familiar example, let's look at the contents of
+                your documents. I've stored the directories of your documents 
+                in a variable 'dirdocuments' and the files of your documents in a 
+                variable 'filedocuments'. Type '$dirdocuments' to see the contents
+                of the first variable and '$filedocuments' to see the contents of
+                the second variable
+            </P>
+            <opt> cvp </opt>
+            <code> 
+                $userName = $env:USERNAME; 
+                $dirDocuments = Get-ChildItem "C:\Users\$userName\Documents" -Directory
+                $fileDocuments = Get-ChildItem "C:\Users\$userName\Documents" -File
+            </code>
+        </T>
+    </S>
+    <S>
+        <N> PowerShell Applications</N>
+        <T>
+            <P> In the previous section, we saw an example of using PowerShell 
+                for the kinds of things you usually do in the Windows GUI.
+                In this section, we'll consider some of the more advanced uses 
+                of PowerShell.
+            </P>
+        </T>
+        <T>
+            <P> PowerShell can be used to manage SQL Server, SharePoint, Hyper-V,
+                and many other applications
+            </P>
+        </T>
+    </S>
+</B>
+</Lesson>
