@@ -209,11 +209,11 @@ InModuleScope PowerSwirl {
          }
     }
 
-    Describe ConvertTo-LessonXML {
+    Describe ConvertFrom-LessonMarkup {
         It "step through" {
             $lessonPath = "C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl\Lessons\intro_powerswirl_test_lesson.xml"
             $lessonString = Get-Content $lessonPath -raw
-            ConvertTo-LessonXML -LessonString $lessonString 
+            ConvertFrom-LessonMarkup -LessonString $lessonString 
         }
     }
 

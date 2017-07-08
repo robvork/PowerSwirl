@@ -54,21 +54,31 @@ function Import-LessonDetail
 
 function New-ImportLesson
 {
+    [CmdletBinding()]
     param
     (
-        [String] $CourseID
+        [String] $CourseName
     ,
-        [String] $LessonID
+        [String] $LessonName
     ,
+        [Parameter(ParameterSetName="PremadeBody")]
+        [String[]] $BodyBlock 
+    ,
+        [Parameter(ParameterSetName="PlaceholderBody")]
         [Int] $SectionCount = 1
     ,
+        [Parameter(ParameterSetName="PlaceholderBody")]
         [Int[]] $StepCount = @(2)
     ,
+        [Parameter(ParameterSetName="PlaceholderBody")]
         [Int[]] $FullStepCount = @(1)
     )
     
-    $HeaderBlock = New-ImportLessonHeader -CourseID $CourseID -LessonID $LessonID
-    $BodyBlock = New-ImportLessonBody -SectionCount $SectionCount -StepCount $StepCount -FullStepCount $FullStepCount
+    $HeaderBlock = New-ImportLessonHeader -CourseName $CourseName -LessonName $LessonName
+    if($PSCmdlet.ParameterSetName -eq "PlaceholderBody")
+    {
+        $BodyBlock = New-ImportLessonBody -SectionCount $SectionCount -StepCount $StepCount -FullStepCount $FullStepCount
+    } 
 
     $LessonBlock = New-ImportLessonBlock -Name "Lesson" -Contents ($HeaderBlock + $BodyBlock)
 
@@ -81,22 +91,22 @@ function New-ImportLessonHeader
 {
     param
     (
-        [String] $CourseID
+        [String] $CourseName
     ,
-        [String] $LessonID        
+        [String] $LessonName        
     )
 
-    if($CourseID -eq $null -or $CourseID -eq "")
+    if($CourseName -eq $null -or $CourseName -eq "")
     {
-        throw "CourseID must be not null and not empty"
+        throw "CourseName must be not null and not empty"
     }
-    if($LessonID -eq $null -or $LessonID -eq "")
+    if($LessonName -eq $null -or $LessonName -eq "")
     {
-        throw "LessonID must be nto null and not empty"
+        throw "LessonName must be nto null and not empty"
     }
 
-    $CourseBlock = New-ImportLessonBlock -Name "Course" -Contents $CourseID
-    $LessonBlock = New-ImportLessonBlock -Name "Lesson" -Contents $LessonID
+    $CourseBlock = New-ImportLessonBlock -Name "Course" -Contents $CourseName
+    $LessonBlock = New-ImportLessonBlock -Name "Lesson" -Contents $LessonName
 
     $HeaderBlock = New-ImportLessonBlock -Name "Header" -Contents ($CourseBlock + $LessonBlock)
 
@@ -110,39 +120,49 @@ function New-ImportLessonBody
     [CmdletBinding()]
     param
     (
+        [Parameter(ParameterSetName="PremadeSteps")]
+        [string[]] $SectionBlocks
+    ,
+        [Parameter(ParameterSetName="PlaceholderSections")]
         [Int] $SectionCount = 1
     ,
+        [Parameter(ParameterSetName="PlaceholderSections")]
         [Int[]] $StepCount = @(2)
     ,
+        [Parameter(ParameterSetName="PlaceholderSections")]
         [Int[]] $FullStepCount = @(1)
     )
 
-    if($StepCount.Count -ne $SectionCount)
+    if($PSCmdlet.ParameterSetName -eq "PlaceholderSections")
     {
-        throw "StepCount must have a total of NumSections entries."
-    }
+        if($StepCount.Count -ne $SectionCount)
+        {
+            throw "StepCount must have a total of NumSections entries."
+        }
 
-    if($StepCount | 
-        Where-Object -FilterScript {$_ -lt 0})
-    {
-        throw "StepCount must contain only non-negative integers."
-    }
+        if($StepCount | 
+            Where-Object -FilterScript {$_ -lt 0})
+        {
+            throw "StepCount must contain only non-negative integers."
+        }
 
-    if($FullStepCount.Count -ne $SectionCount)
-    {
-        throw "FullStepCount must have a total of NumSections entries."
-    }
+        if($FullStepCount.Count -ne $SectionCount)
+        {
+            throw "FullStepCount must have a total of NumSections entries."
+        }
 
-    if($FullStepCount | 
-        Where-Object -FilterScript {$_ -lt 0})
-    {
-        throw "FullStepCount must contain only non-negative integers."
-    }
+        if($FullStepCount | 
+            Where-Object -FilterScript {$_ -lt 0})
+        {
+            throw "FullStepCount must contain only non-negative integers."
+        }
 
-    $SectionBlocks = (1..$SectionCount) | 
-                        ForEach-Object {
-                            New-ImportLessonSection -Title "section #$_" -StepCount $StepCount[$_ - 1] -FullStepCount $FullStepCount[$_ - 1]
-                        }
+        $SectionBlocks = (1..$SectionCount) | 
+                            ForEach-Object {
+                                New-ImportLessonSection -Title "section #$_" -StepCount $StepCount[$_ - 1] -FullStepCount $FullStepCount[$_ - 1]
+                            }
+    }
+    
     $BodyBlock = New-ImportLessonBlock -Name "Body" -Contents $SectionBlocks 
 
     Write-Output $BodyBlock 
@@ -153,12 +173,18 @@ Set-Alias -Name nilb -Value New-ImportLessonBody
 
 function New-ImportLessonSection
 {
+    [CmdletBinding()]
     param
     (
         [String] $Title
     ,
+        [Parameter(ParameterSetName="PremadeSteps")]
+        [String[]] $StepBlocks
+    ,
+        [Parameter(ParameterSetName="PlaceholderSteps")]
         [Int] $StepCount = 1
     ,
+        [Parameter(ParameterSetName="PlaceholderSteps")]
         [Int] $FullStepCount = 0
     )
 
@@ -172,48 +198,52 @@ function New-ImportLessonSection
         throw "Title must be at least 5 characters"
     }
 
-    if($StepCount -lt 0)
+    if($PSCmdlet.ParameterSetName -eq "PlaceholderSteps")
     {
-        throw "StepCount must be non-negative"
-    }
-
-    if($FullStepCount -lt 0)
-    {
-        throw "NumStepsFull must be non-negative"
-    }
-
-    if($FullStepCount -gt $StepCount)
-    {
-        throw "FullStepCount must be less than or equal to StepCount"
-    }
-
-    $StepBlocks = [String[]] @()
-    if($StepCount -gt 0)
-    {
-        $FullStepBlocks = [String[]] @()
-        if($FullStepCount -gt 0)
+        if($StepCount -lt 0)
         {
-            $FullParams = @{
-            RequiresPause=$true; 
-            RequiresSolution=$true; 
-            RequiresExecuteSolution=$true; 
-            RequiresCodeExecution=$true; 
-            RequiresSetVariable=$true; 
-            SolutionExpression="soln_exp";
-            CodeToExecute="1+1";
-            VariableToSet="x";
-            }
-
-            $FullStepBlocks    = (1..$FullStepCount) | 
-                            ForEach-Object {New-ImportLessonStep -Prompt "step #$_" @FullParams}
+            throw "StepCount must be non-negative"
         }
+
+        if($FullStepCount -lt 0)
+        {
+            throw "NumStepsFull must be non-negative"
+        }
+
+        if($FullStepCount -gt $StepCount)
+        {
+            throw "FullStepCount must be less than or equal to StepCount"
+        }
+
+        $StepBlocks = [String[]] @()
+        if($StepCount -gt 0)
+        {
+            $FullStepBlocks = [String[]] @()
+            if($FullStepCount -gt 0)
+            {
+                $FullParams = @{
+                RequiresPause=$true; 
+                RequiresSolution=$true; 
+                RequiresExecuteSolution=$true; 
+                RequiresCodeExecution=$true; 
+                RequiresSetVariable=$true; 
+                SolutionExpression="soln_exp";
+                CodeToExecute="1+1";
+                VariableToSet="x";
+                }
+
+                $FullStepBlocks    = (1..$FullStepCount) | 
+                                ForEach-Object {New-ImportLessonStep -Prompt "step #$_" @FullParams}
+            }
         
-        $DefaultStepBlocks = (($FullStepCount + 1)..$StepCount) | 
-                                ForEach-Object {New-ImportLessonStep -Prompt "step #$_"}
-        $StepBlocks = $FullStepBlocks + $DefaultStepBlocks
+            $DefaultStepBlocks = (($FullStepCount + 1)..$StepCount) | 
+                                    ForEach-Object {New-ImportLessonStep -Prompt "step #$_"}
+            $StepBlocks = $FullStepBlocks + $DefaultStepBlocks
+        }
     }
     
-    $SectionBlock = New-ImportLessonBlock -Name "Section" -Contents $StepBlocks
+    $TitleBlock = New-ImportLessonBlock -Name "Name" -Contents $Title 
+    $SectionBlock = New-ImportLessonBlock -Name "Section" -Contents ($TitleBlock + $StepBlocks)
 
     Write-Output $SectionBlock
 
@@ -226,98 +256,108 @@ function New-ImportLessonStep
     [CmdletBinding()]
     param
     (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [String] $Prompt = "step_prompt"
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Switch] $RequiresPause 
         ,
-
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Switch] $RequiresSolution 
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [String] $SolutionExpression = $null 
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Switch] $RequiresExecuteSolution 
-        
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Switch] $RequiresCodeExecution
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [String] $CodeToExecute = $null 
-        
         ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Switch] $RequiresSetVariable = $false
-        , 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [String] $VariableToSet = $null 
     )
 
-    Write-Verbose "Validating parameters"
-    if($RequiresSolution)
+    Process 
     {
-        if($SolutionExpression -eq $null -or $SolutionExpression -eq "")
+        Write-Verbose "Validating parameters"
+        if($RequiresSolution)
         {
-            throw "When solution is required, SolutionExpression must be not null or empty"
+            if($SolutionExpression -eq $null -or $SolutionExpression -eq "")
+            {
+                throw "When solution is required, SolutionExpression must be not null or empty"
+            }
         }
-    }
 
-    if($RequiresCodeExecution)
-    {
-        if($CodeToExecute -eq $null -or $CodeToExecute -eq "")
+        if($RequiresCodeExecution)
         {
-            throw "When code must be executed, CodeToExecute must be not null"
+            if($CodeToExecute -eq $null -or $CodeToExecute -eq "")
+            {
+                throw "When code must be executed, CodeToExecute must be not null"
+            }
         }
-    }
 
-    if($RequiresSetVariable)
-    {
-        if($VariableToSet -eq $null) 
-        {
-            throw "When variable must be set, VariableToSet must be not null"
-        }
-    }
-
-    Write-Verbose "Constructing prompt block" 
-    $PromptBlock = New-ImportLessonBlock -Name "Prompt" -Contents $Prompt
-
-    Write-Verbose "Constructing pause lesson block" 
-    $RequiresPauseBlock = New-ImportLessonBlock -Name "RequiresPauseLesson" -Contents ([int] $RequiresPause.IsPresent)
-
-    Write-Verbose "Constructing code to execute block" 
-    $RequiresCodeExecutionBlock = New-ImportLessonBlock -Name "RequiresCodeExecution" -Contents ([int] $RequiresCodeExecution.IsPresent)
-    $CodeExecutionBlocks = [String[]] @()
-    if($RequiresCodeExecution)
-    {
-        $CodeToExecuteBlock = New-ImportLessonBlock -Name "CodeToExecute" -Contents $CodeToExecute       
-        $RequiresSetVariableBlock = New-ImportLessonBlock -Name "RequiresSetVariable" -Contents ([int] $RequiresSetVariable.IsPresent)
-       
-        $VariableToSetBlock = [String[]]@()
         if($RequiresSetVariable)
         {
-            $VariableToSetBlock = New-ImportLessonBlock -Name "Variable" -Contents $VariableToSet
+            if($VariableToSet -eq $null) 
+            {
+                throw "When variable must be set, VariableToSet must be not null"
+            }
         }
 
-        $CodeExecutionBlocks = $CodeToExecuteBlock + $RequiresSetVariableBlock + $VariableToSetBlock
+        Write-Verbose "Constructing prompt block" 
+        $PromptBlock = New-ImportLessonBlock -Name "Prompt" -Contents $Prompt
+
+        Write-Verbose "Constructing pause lesson block" 
+        $RequiresPauseBlock = New-ImportLessonBlock -Name "RequiresPauseLesson" -Contents ([int] $RequiresPause.IsPresent)
+
+        Write-Verbose "Constructing code to execute block" 
+        $RequiresCodeExecutionBlock = New-ImportLessonBlock -Name "RequiresCodeExecution" -Contents ([int] $RequiresCodeExecution.IsPresent)
+        $CodeExecutionBlocks = [String[]] @()
+        if($RequiresCodeExecution)
+        {
+            $CodeToExecuteBlock = New-ImportLessonBlock -Name "CodeToExecute" -Contents $CodeToExecute       
+            $RequiresSetVariableBlock = New-ImportLessonBlock -Name "RequiresSetVariable" -Contents ([int] $RequiresSetVariable.IsPresent)
+       
+            $VariableToSetBlock = [String[]]@()
+            if($RequiresSetVariable)
+            {
+                $VariableToSetBlock = New-ImportLessonBlock -Name "Variable" -Contents $VariableToSet
+            }
+
+            $CodeExecutionBlocks = $CodeToExecuteBlock + $RequiresSetVariableBlock + $VariableToSetBlock
+        }
+
+        Write-Verbose "Constructing solution block"
+        $RequiresSolutionBlock = New-ImportLessonBlock -Name "RequiresSolution" -Contents ([int] $RequiresSolution.IsPresent)
+        $SolutionBlock = [String[]] @()
+        if($RequiresSolution)
+        {
+            $SolutionExpressionBlock = New-ImportLessonBlock -Name "Expression" -Contents $SolutionExpression
+            $RequiresExecuteBlock = New-ImportLessonBlock -Name "RequiresExecution" -Contents ([int] $RequiresExecuteSolution.IsPresent)
+            $SolutionBlock = New-ImportLessonBlock -Name "Solution" -Contents ($SolutionExpressionBlock + $RequiresExecuteBlock)
+        }
+
+        Write-Verbose "Constructing final step block"
+        $StepBlock = New-ImportLessonBlock -Name "Step" -Contents (
+                     $PromptBlock +
+                     $RequiresPauseBlock + 
+                     $RequiresCodeExecutionBlock +
+                     $CodeExecutionBlocks + 
+                     $RequiresSolutionBlock +
+                     $SolutionBlock
+                     )
+
+        Write-Verbose "Outputting StepBlock"
+        Write-Output $StepBlock 
     }
-
-    Write-Verbose "Constructing solution block"
-    $RequiresSolutionBlock = New-ImportLessonBlock -Name "RequiresSolution" -Contents ([int] $RequiresSolution.IsPresent)
-    $SolutionBlock = [String[]] @()
-    if($RequiresSolution)
-    {
-        $SolutionExpressionBlock = New-ImportLessonBlock -Name "Expression" -Contents $SolutionExpression
-        $RequiresExecuteBlock = New-ImportLessonBlock -Name "RequiresExecution" -Contents ([int] $RequiresExecuteSolution.IsPresent)
-        $SolutionBlock = New-ImportLessonBlock -Name "Solution" -Contents ($SolutionExpressionBlock + $RequiresExecuteBlock)
-    }
-
-    Write-Verbose "Constructing final step block"
-    $StepBlock = New-ImportLessonBlock -Name "Step" -Contents (
-                 $PromptBlock +
-                 $RequiresPauseBlock + 
-                 $RequiresCodeExecutionBlock +
-                 $CodeExecutionBlocks + 
-                 $RequiresSolutionBlock +
-                 $SolutionBlock
-                 )
-
-    Write-Verbose "Outputting StepBlock"
-    Write-Output $StepBlock 
+    
 }
 
 Set-Alias -Name nilst -Value New-ImportLessonStep 
@@ -417,8 +457,7 @@ function Test-HasOnlyElementsInList
     }
 }
 
-
-function ConvertTo-LessonXML
+function ConvertFrom-LessonMarkup
 {
     [CmdletBinding()]
     param
@@ -450,17 +489,129 @@ function ConvertTo-LessonXML
     $Sections = Get-XMLElement $Body "S"
 
     Write-Verbose "Mapping a unique identity to each section name" 
-    $SectionIDToName = @{}
+    $SectionIDToName =  @{}
     for($i = 0; $i -lt $Sections.Length; $i++) 
     {
         $SectionIDToName[$i] = (Get-XMLElement $Sections[$i] "N")
     }
 
     Write-Verbose "Mapping section id to step list"
-    $SectionIDToSteps = @{}
+    $SectionIDToSteps =  @{}
     $SectionIDToName.Keys | 
         ForEach-Object {$SectionIDToSteps[$_] = (Get-XMLElement $Sections[$_] "T")}
 
-    Write-Verbose "Done"
+    Write-Verbose "Extracting step detail and assigning step numbers"
+    $SectionIDToStepDetail =  @{}
+    $SectionIDToName.Keys |
+    ForEach-Object {
+        $Steps = $SectionIDToSteps[$_]; 
+        $SectionStepDetails = @();
+        for($i = 0; $i -lt $Steps.Length; $i++)
+        {
+            $StepID = $i 
+            $Step = $Steps[$i] 
+            $Prompt = Get-XMLElement $Step "P"
+            $RequiresExecution = $false 
+            $RequiresPause = $false 
+            $RequiresSolution = $false 
+            $RequiresSetVariable = $false 
+            $CodeToExecute = $null 
+            $Variable = $null 
+            $SolutionExpression = $null 
+            $SolutionRequiresExecution = $false
+            if("opt" -in ($Step | Get-Member -MemberType Property | Select-Object -ExpandProperty Name))
+            {
+                $opt = Get-XMLElement $Step "opt"
+                if($opt.contains("e"))
+                {
+                    $RequiresExecution = $true 
+                    $CodeToExecute = Get-XMLElement $Step "code"
+                }   
+                if($opt.contains("v"))
+                {
+                    $RequiresSetVariable = $true
+                    $VariableName = Get-XMLElement $Step "var"
+                }
+                if($opt.contains("s"))
+                {
+                    $RequiresSolution = $true 
+                    $Solution = Get-XMLElement $Step "soln"
+                    $SolutionExpression = Get-XMLElement $Solution "expr"
+                    $SolutionRequiresExecution = [bool] [int] (Get-XMLElement $Solution "exec")
+                }
+                if($opt.contains("p"))
+                {
+                    $RequiresPause = $true 
+                }
+            }
+            $stepDetails = @{
+                StepID = $StepID;
+                Prompt = $Prompt;
+                RequiresSetVariable = $RequiresSetVariable;
+                VariableToSet = $Variable;
+                RequiresCodeExecution = $RequiresExecution;
+                CodeToExecute = $CodeToExecute;
+                RequiresPause = $RequiresPause;
+                RequiresSolution = $RequiresSolution;
+                SolutionExpression = $SolutionExpression;
+                RequiresSolutionExecution = $SolutionRequiresExecution;
+            }
+            $SectionStepDetails += New-Object -TypeName PSObject -Property $stepDetails
+        };
+        $SectionIDToStepDetail[$_] = $SectionStepDetails
+    }
+        
+    Write-Verbose "Generating XML for each section"
+    $SectionIDToXML =  @{}
+    foreach($SectionID in $SectionIDToName.Keys)
+    {
+        $SectionName = $SectionIDToName[$SectionID] 
+        $SectionStepDetails = $SectionIDToStepDetail[$SectionID] 
+        $StepsXML = $SectionStepDetails | 
+                    New-ImportLessonStep
+        $SectionXML = New-ImportLessonSection -Title $SectionName -StepBlocks $StepsXML 
+        $SectionIDToXML[$SectionID] = $SectionXML 
+    }
+    
+    Write-Verbose "Generating XML for entire body of lesson"
+    $SectionBlocks = [string[]]@()
+    for($sectionIdx = 0; $sectionIdx -lt $Sections.Length; $sectionIdx++)
+    {
+        $SectionBlocks += $SectionIDToXML[$sectionIdx]
+    }
+    $BodyXML = New-ImportLessonBody -SectionBlocks $SectionBlocks 
 
+    Write-Verbose "Generating XML for entire lesson"
+    $LessonXML = New-ImportLesson -CourseName $CourseName -LessonName $LessonName -BodyBlock $BodyXML 
+    
+    Write-Output $LessonXML
 }
+
+<#
+[Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $Prompt = "step_prompt"
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Switch] $RequiresPause 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Switch] $RequiresSolution 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $SolutionExpression = $null 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Switch] $RequiresExecuteSolution 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Switch] $RequiresCodeExecution
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $CodeToExecute = $null 
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [Switch] $RequiresSetVariable = $false
+        ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [String] $VariableToSet = $null 
+#>

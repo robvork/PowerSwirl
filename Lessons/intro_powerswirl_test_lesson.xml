@@ -15,7 +15,10 @@
         <T>
             <P> What company created PowerShell? </P>
             <opt> s </opt>
-            <soln> Microsoft </soln>
+            <soln> 
+                <expr> Microsoft  </expr>
+                <exec> 0 </exec>
+            </soln>
         </T>
         <T>
             <P> PowerShell can be used for programming full applications in .NET,
@@ -32,6 +35,7 @@
             <P> Using the command 'Get-ChildItem C:\Windows', examine
                 the contents of the Windows directory
             </P>
+            <opt> p </opt>
         </T>
         <T>
             <P> Referring to the results of executing this command, look
@@ -39,7 +43,14 @@
                 What is the full name of this entry?
             </P>
             <opt>s</opt>
-            <soln>PolicyDefinitions</soln> 
+            <soln>
+                <expr>
+                    PolicyDefinitions
+                </expr>
+                <exec>
+                    0
+                </exec>
+            </soln> 
         </T>
         <T>
             <P> As a more familiar example, let's look at the contents of
@@ -49,7 +60,7 @@
                 of the first variable and '$filedocuments' to see the contents of
                 the second variable
             </P>
-            <opt> cvp </opt>
+            <opt> cp </opt>
             <code> 
                 $userName = $env:USERNAME; 
                 $dirDocuments = Get-ChildItem "C:\Users\$userName\Documents" -Directory
