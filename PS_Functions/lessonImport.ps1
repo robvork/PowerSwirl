@@ -587,6 +587,141 @@ function ConvertFrom-LessonMarkup
     Write-Output $LessonXML
 }
 
+function ConvertTo-ImportSQL
+{
+    [CmdletBinding()]
+    param
+    (
+        [xml] $LessonXML
+    )
+
+    # Get course name
+    $CourseName = $LessonXML.Lesson.Header.CourseName
+
+    # Get lesson name
+    $LessonName = $LessonXML.Lesson.Header.LessonName
+
+    # Get CourseSID, LessonSID
+    $CourseSid # = ...
+    $LessonSid # = ...
+    
+    # Get sections 
+    $Sections = $LessonXML.Lesson.Body.Section
+
+    # For each section, generate a row of values
+    $SectionNameToRows = @{}
+    foreach($Section in $Sections)
+    {
+        $SectionNameToRows[$Section.Name] = $Section.Step | 
+            Select-Object @{n="StepPrompt"; e={$_.Prompt}},
+                          @{n="RequiresPause"; e={$_.RequiresPause}},
+                          @{n="RequiresSolution"; e = {$_.RequiresSolution}}, 
+                          @{n="RequiresCodeExecution"; e ={$_.RequiresCodeExecution}},
+                          @{n="RequiresSetVariable"; e={$_.RequiresSetVariable}}, 
+                          @{n="RequiresSolutionExecution"; e={$_.RequiresSolutionExecution}},
+                          @{n="CodeToExecute"; e={$_.CodeToExecute}},
+                          @{n="VariableToSet"; e={$_.VariableToSet}}, 
+                          @{n="SolutionExpression"; e={$_.SolutionExpression}} | 
+            ConvertTo-ImportSQLRow
+    }
+
+    # Get step numbers for each step in lesson
+
+    # Combine sections into one SQL statement
+}
+
+function Get-ImportSQLHeader
+{
+    $Table = "dbo.lesson_dtl"
+    $Columns = @("  course_sid",
+                "lesson_sid",
+                "step_num",
+                "step_prompt",
+                "requires_pause",
+                "requires_solution",
+                "requires_code_execution",
+                "requires_set_variable",
+                "requires_solution_execution",
+                "code_to_execute",
+                "variable_to_set",
+                "solution_expression")
+    $Header = @($Table,
+                "(",
+                ($Columns -join "`n, "),
+                ")"
+               ) -join "`n"
+    echo $Header
+                
+}
+
+function ConvertTo-ImportSQLRow
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [int] $CourseSid
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [int] $LessonSid
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [int] $StepNum
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [string] $StepPrompt
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [switch] $RequiresPause
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [switch] $RequiresSolution
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [switch] $RequiresSetVariable
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [switch] $RequiresSolutionExecution
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [string] $CodeToExecute = "" 
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [string] $VariableToSet = ""
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [string] $SolutionExpression = ""
+    )
+
+
+    Process 
+    {
+        $Values = @(
+            ("  "+ $CourseSid)
+        ,   $LessonSid
+        ,   $StepNum
+
+        ,   "'$StepPrompt'"
+
+        ,   [int] $RequiresPause.IsPresent
+        ,   [int] $RequiresSolution.IsPresent
+        ,   [int] $RequiresSetVariable.IsPresent
+        ,   [int] $RequiresSolutionExecution.IsPresent 
+
+            # for each of the remaining values, if the value is NULL, we use a string 'NULL' with no quotes
+            # to insert a NULL. 
+            # each value is NOT NULL if and only if its corresponding switch above is enabled.
+        ,   $(if($CodeToExecute      -eq "") {"NULL"} else {"'$CodeToExecute'"})
+        ,   $(if($VariableToSet      -eq "") {"NULL"} else {"'$VariableToSet'"})
+        ,   $(if($SolutionExpression -eq "") {"NULL"} else {"'$SolutionExpression'"})
+        )
+
+        $Row = "(`n" + ($Values -join "`n, ") + "`n)"
+
+        Write-Output $Row 
+    }
+}
+
 <#
 [Parameter(ValueFromPipelineByPropertyName=$true)]
         [String] $Prompt = "step_prompt"
