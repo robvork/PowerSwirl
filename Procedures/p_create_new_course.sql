@@ -68,7 +68,10 @@ BEGIN
 		
 	SET @li_course_sid = 
 	(
-		SELECT MAX(course_sid) + 1 
+		-- Get the maximum course_sid if there is at least one course
+		-- If there are no courses, just use 0
+		-- Then add 1 to get the new course sid
+		SELECT ISNULL(MAX(course_sid), 0) + 1 
 		FROM dbo.course_hdr 
 	)
 

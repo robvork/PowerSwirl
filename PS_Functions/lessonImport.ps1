@@ -7,39 +7,42 @@ function Import-Lesson
     ,
         [String] $Database
     ,
-        [String] $LessonPath
+        [Parameter(ValueFromPipeline=$true)]
+        [String] $LessonXML
     ,
         [Switch] $OverWriteLesson
     ,
         [Switch] $CreateNewCourse
     )
 
-    $LessonXML = [xml](Get-Content $LessonFilePath -Raw)
     $ConnectionParams = @{
                           ServerInstance=$ServerInstance;
                           Database=$Database;
                          }
 
     # Get course and lesson name
-    $Header = Get-LessonHeader $LessonXML
+    $Header = Get-ImportLessonHeader $LessonXML
     $CourseName = $Header.CourseName
     $LessonName = $Header.LessonName
 
     # Check whether course and lesson already exist. 
-    $Course = Get-Course @ConnectionParams -CourseID $CourseName
+    $Course = Get-Course -CourseID $CourseName @ConnectionParams 
     $CourseExists = $Course.CourseExists 
     # if a course with name CourseName exists
     if($CourseExists)
     {
+        $CourseSid = $Course.CourseSid 
         # check whether a lesson with name LessonName exists within that course
-        $Lesson = Get-Lesson -CourseSID $Course.CourseSid -LessonID $LessonName @ConnectionParams 
+        $Lesson = Get-Lesson -CourseSID $CourseSid -LessonID $LessonName @ConnectionParams 
         $LessonExists = $Lesson.LessonExists
         if($LessonExists)
         {
-            # overwrite the lesson only if the OverwriteLesson parameter is specified.
+            # proceed only if the OverwriteLesson parameter is specified.
             # this is intended to prevent unintentional overwrites 
             if($OverwriteLesson)
             {
+                $LessonSid = $Lesson.LessonSid
+                Clear-LessonSteps -CourseSid $CourseSid -LessonSid $LessonSid @ConnectionParams
             }
             # if OverwriteLesson is not specified, do not proceed
             else
@@ -55,21 +58,29 @@ function Import-Lesson
         # this is intended to prevent accidentally creating a new course for example if the course name has typos
         if($CreateNewCourse)
         {
-            
+            $CourseSid = Register-Course -CourseName $CourseName @ConnectionParams
+            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName @ConnectionParams
         }
         # if CreateNewCourse is not specified, do not proceed
         else
         {
-            throw "Course does not exist and CreateNewCourse was not used. Use this parameter to create a new course"
+            throw "Course does not exist and CreateNewCourse was not used. Use this parameter to create a new course."
         }
     }
+    # At this point we have a CourseSid and LessonSid, whether these existed prior to this function
+    # or were created in its execution. We also have ensured that any preexisting steps in
+    # (CourseSid, LessonSid) have been cleared so we can proceed to inserting without
+    # fear of duplication.
     
+    # Generate INSERT statement from LessonXML
+    $ImportSQL = $LessonXML | 
+                 ConvertTo-ImportSQL -CourseSid $CourseSid -LessonSid $LessonSid 
 
-    
-    
-    # Generate INSERT statement from the LessonXML
+    Write-Output $ImportSQL
 
     # Execute INSERT statement to insert lesson into database
+    # Invoke-Sqlcmd2 -Query $ImportSQL @ConnectionParams
+
         
 }
 
@@ -83,7 +94,20 @@ function Register-Course
     ,   $CourseName 
     )
 
+    $ConnectionParams = @{
+        ServerInstance=$ServerInstance; 
+        Database=$Database; 
+    }
 
+    $Query = "EXECUTE dbo.p_create_new_course 
+                      @as_course_id = '$CourseName'
+              ;
+             "
+
+    $CourseSid = Invoke-SqlCmd2 @ConnectionParams -Query $Query -As PSObject |
+                 Select-Object -ExpandProperty course_sid
+
+    Write-Output $CourseSid 
 }
 
 function Register-Lesson 
@@ -97,18 +121,54 @@ function Register-Lesson
     ,   $LessonName 
     )
 
+    $ConnectionParams = @{
+        ServerInstance=$ServerInstance; 
+        Database=$Database; 
+    }
+
+    $Query = "EXECUTE dbo.p_create_new_lesson 
+                      @ai_course_sid = $CourseSid
+              ,       @as_lesson_id = '$LessonName'
+             ;" 
 
 }
 
-function Get-LessonHeader
+function Clear-LessonSteps
+{
+    [CmdletBinding()]
+    param
+    (
+        $ServerInstance
+    ,
+        $Database 
+    ,
+        $CourseSid
+    ,
+        $LessonSid 
+    )
+
+    $ConnectionParams = @{
+        ServerInstance=$ServerInstance; 
+        Database=$Database; 
+    }
+
+    $Query = "EXECUTE dbo.p_delete_lesson_steps
+                      @ai_course_sid = $CourseSid
+              ,       @ai_lesson_sid = $LessonSid
+              ;
+             "
+    Invoke-Sqlcmd2 $Query @ConnectionParams
+}
+
+function Get-ImportLessonHeader
 {
     param
     (
         [xml] $Lesson 
     )
 
-    $CourseName = $Lesson.Lesson.Header.Course
-    $LessonName = $Lesson.Lesson.Header.Lesson
+    $CourseName = (ConvertTo-CleanText $Lesson.Lesson.Header.Course)
+    $LessonName = (ConvertTo-CleanText $Lesson.Lesson.Header.Lesson)
 
     $HeaderProperties = @{CourseName = $CourseName; 
                           LessonName = $LessonName; 
@@ -117,24 +177,6 @@ function Get-LessonHeader
 
     Write-Output $LessonHeader
         
-}
-
-function Test-LessonHeader
-{}
-
-function Import-LessonDetail
-{
-    <#
-        .SYNOPSIS 
-        Imports lesson detail rows 
-
-        .DESCRIPTION
-        Merges lesson detail rows into database as a single operation
-    #>
-    param
-    (
-        [LessonDetail[]] $LessonDetail
-    )
 }
 
 function New-ImportLesson
@@ -681,18 +723,10 @@ function ConvertTo-ImportSQL
         [Parameter(ValueFromPipeline=$True)]
         [xml] $LessonXML
     ,
-        [switch] $Force
+        $CourseSid 
+    ,
+        $LessonSid 
     )
-
-    # Get course name
-    $CourseName = $LessonXML.Lesson.Header.CourseName
-
-    # Get lesson name
-    $LessonName = $LessonXML.Lesson.Header.LessonName
-
-    # Get CourseSID, LessonSID
-    $CourseSid = 1 # = ...
-    $LessonSid = 2 # = ...
     
     # Get sections 
     $Sections = $LessonXML.Lesson.Body.Section
@@ -703,17 +737,16 @@ function ConvertTo-ImportSQL
     foreach($Section in $Sections)
     {
         $SectionNameToRows[$Section.Name] = $Section.Step | 
-            Select-Object @{n="StepPrompt"; e={$_.Prompt.Replace("`n`n", "`n")}},
+            Select-Object @{n="StepPrompt"; e={(ConvertTo-CleanText $_.Prompt)}},
                           @{n="RequiresPause"; e={[bool]$_.RequiresPause}},
                           @{n="RequiresSolution"; e = {[bool]$_.RequiresSolution}}, 
                           @{n="RequiresCodeExecution"; e ={[bool]$_.RequiresCodeExecution}},
                           @{n="RequiresSetVariable"; e={[bool]$_.RequiresSetVariable}}, 
                           @{n="RequiresSolutionExecution"; e={[bool]$_.Solution.RequiresExecution}},
-                          @{n="CodeToExecute"; e={$_.CodeToExecute}},
-                          @{n="VariableToSet"; e={$_.VariableToSet}}, 
-                          @{n="SolutionExpression"; e={$_.Solution.Expression}} | 
+                          @{n="CodeToExecute"; e={(ConvertTo-CleanText $_.CodeToExecute)}},
+                          @{n="VariableToSet"; e={(ConvertTo-CleanText $_.VariableToSet)}}, 
+                          @{n="SolutionExpression"; e={(ConvertTo-CleanText $_.Solution.Expression)}} | 
             ConvertTo-ImportSQLRow -CourseSid $CourseSid -LessonSid $LessonSid
-        
         $Rows += $SectionNameToRows[$Section.Name] 
     }
     
@@ -731,6 +764,32 @@ function ConvertTo-ImportSQL
                   ) -join "`n"
 
     Write-Output $InsertSQL 
+}
+
+function ConvertTo-CleanText
+{
+    <#
+        .SYNOPSIS 
+        Removes unwanted whitespace from a string
+
+        .DESCRIPTION
+        Removes empty lines and lines containing only whitespace. 
+        Trims the whitespace at the beginning and end of each non-whitespace line. 
+    #>
+    [CmdletBinding()]
+    param 
+    (
+        $Text
+    )
+    
+    # Separate string into lines based on the location of line returns
+    $CleanText = $Text.Split("`n") | 
+    # Remove empty lines and those only containing whitespace
+    Where-Object -FilterScript {$_ -notmatch "^\s*$"} | 
+    # Remove whitespace at beginning and end of each line
+    ForEach-Object {$_ -replace "^\s+","" -replace "\s+$",""} 
+
+    Write-Output ($CleanText -join "`n")
 }
 
 function Get-ImportSQLHeader
