@@ -5,10 +5,8 @@ GO
 CREATE PROCEDURE dbo.p_create_new_lesson
 (
 	  @ai_debug_level INT = 0
+	, @ai_course_sid ID
 	, @as_lesson_id ID
-	, @as_course_id ID
-	, @ab_overwrite_existing_lesson FLAG
-	, @ab_create_new_course FLAG
 )
 AS
 /*******************************************************************************
@@ -16,7 +14,7 @@ Procedure
 p_create_new_lesson
 
 Description 
-Briefly describe procedure
+Create a new lesson in an existing course with a specified name.
 
 --------------------------------Interface-----------------------------------------
 Input Parameter(s)
@@ -47,130 +45,96 @@ BEGIN
 	DECLARE @lb_lesson_exists AS BIT;
 	DECLARE @lb_course_exists AS BIT;
 	DECLARE @li_lesson_sid AS SID;
-	DECLARE @li_course_sid AS SID;
 
+	-- Check whether course exists
 	SET @lb_course_exists = 
 	(
+	  SELECT 
 		CASE 
-			WHEN EXISTS 
-			(
+			 WHEN EXISTS 
+			 (
 				SELECT * 
 				FROM dbo.course_hdr 
-				WHERE course_id = @as_course_id
-			) 
-				THEN 
-						1
-			ELSE 
-						0
-		END
-	);
-
-	IF @lb_course_exists = 0 
+				WHERE course_sid = @ai_course_sid
+			 )
+			 THEN 
+					1 
+			 ELSE 
+					0
+		END 
+	); 
+		
+	-- If course does not exist, raise error and halt
+	IF @lb_course_exists = 0
 	BEGIN
-		IF @ab_create_new_course = 1
-		BEGIN
-			SET @li_course_sid = 
-			(
-				SELECT ISNULL(MAX(course_sid), 0) + 1 
-				FROM dbo.course_hdr
-			); 
-			
-			INSERT INTO dbo.course_hdr
-						(
-						  course_sid
-						 ,course_id
-						)
-						VALUES 
-						(
-						  @li_course_sid
-						 ,@as_course_id
-						)
-			;
-		END;
-		ELSE
-		BEGIN
-			SET @ls_error_message = 'Course with id ''' 
-								     + @as_course_id 
-									 + ''' does not exist and procedure called with @ab_overwrite_existing_lesson = 0.' + NCHAR(13)
-									 + 'Use an existing course or use @ab_overwrite_existing_lesson = 1';
-			RAISERROR(@ls_error_message, 16, 1);
-		END;
-	END;
-	ELSE
-		SET @li_course_sid = 
+		SET @ls_error_message = CONCAT('A course with SID ', @ai_course_sid, ' does not exist');
+		RAISERROR(@ls_error_message, 16, 1);
+	END;  
+	-- Otherwise, check whether lesson exists
+	ELSE 
+	BEGIN
+		SET @lb_lesson_exists = 
 		(
-			SELECT course_sid 
-			FROM dbo.course_hdr 
-			WHERE course_id = @as_course_id
+			SELECT 
+				CASE 
+					WHEN EXISTS 
+					(
+						SELECT * 
+						FROM dbo.lesson_hdr
+						WHERE course_sid = @ai_course_sid 
+								AND 
+								lesson_id = @as_lesson_id
+					) 
+					THEN 
+							1
+					ELSE 
+							0
+				END
 		);
 
+		IF @lb_lesson_exists = 1
+		BEGIN
+			SET @ls_error_message = 
+			CONCAT('The course with SID '
+				  ,	@ai_course_sid
+				  , ' already has a lesson named '''
+				  , @as_lesson_id
+				  , N''''
+				  );
 
-	SET @lb_lesson_exists = 
-	(
-		CASE 
-			WHEN EXISTS 
-			(
-				SELECT * 
-				FROM dbo.lesson_hdr 
-				WHERE  
-					course_sid = @li_course_sid
-					AND 
-					lesson_id = @as_lesson_id
-			) 
-				THEN 
-						1
-			ELSE 
-						0
-		END
-	);
-
-	
-
-	IF @lb_lesson_exists = 1
-	BEGIN
-		IF @ab_overwrite_existing_lesson = 1
+			RAISERROR(@ls_error_message, 16, 1);
+		END;
+		ELSE 
 		BEGIN
 			SET @li_lesson_sid = 
 			(
-				SELECT lesson_sid 
+				-- Get the maximum lesson sid for the course if it exists
+				-- If it doesn't exist, just use 0
+				-- Then add 1 to get the new lesson sid
+				SELECT ISNULL(MAX(lesson_sid), 0) + 1 
 				FROM dbo.lesson_hdr 
-				WHERE lesson_id = @as_lesson_id
+				WHERE course_sid = @ai_course_sid
 			); 
-			
-			DELETE FROM dbo.lesson_dtl
-			WHERE	course_sid = @li_course_sid 
-				AND lesson_sid = @li_lesson_sid
-			;
-		END
-		ELSE
-		BEGIN
-			SET @ls_error_message = 'Lesson with id ''' 
-								     + @as_lesson_id 
-									 + ''' already exists within course ''' 
-									 + @as_course_id 
-									 + ''' and procedure called with @ab_overwrite_existing_lesson = 0. ' + NCHAR(13) 
-									 + 'Choose unique lesson name or use @ab_overwrite_existing_lesson = 1'; 
-			RAISERROR(@ls_error_message, 16, 1);
-		END
-	END
-	ELSE
-	BEGIN
-		SET @li_lesson_sid = 
-		(
-			SELECT ISNULL(MAX(lesson_sid), 0) + 1
-			FROM dbo.course_dtl
-			WHERE course_sid = @li_course_sid
-		);
 
-		INSERT INTO dbo.lesson_hdr(course_sid, lesson_sid, lesson_id)
-		VALUES (@li_course_sid, @li_lesson_sid, @as_lesson_id) ;
+			INSERT INTO dbo.lesson_hdr
+			(
+				course_sid
+			,	lesson_sid 
+			,	lesson_id 
+			)
+			VALUES 
+			(
+				@ai_course_sid
+			,	@li_lesson_sid
+			,	@as_lesson_id
+			); 
 
-		INSERT INTO dbo.course_dtl(course_sid, lesson_sid)
-		VALUES (@li_course_sid, @li_lesson_sid)
+			SELECT @li_lesson_sid AS lesson_sid;
+		END; 
 
-	END
 
-	SELECT @li_course_sid, @li_lesson_sid;
+	END; 
+	
 
 END
 GO
