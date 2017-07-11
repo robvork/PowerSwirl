@@ -50,6 +50,10 @@ function Import-Lesson
                 throw "Course and lesson exist but OverwriteLesson was not used. Use this parameter to overwrite."
             }
         }
+        else
+        {
+            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName @ConnectionParams
+        }
     }
     # if no such course exists
     else
@@ -76,10 +80,10 @@ function Import-Lesson
     $ImportSQL = $LessonXML | 
                  ConvertTo-ImportSQL -CourseSid $CourseSid -LessonSid $LessonSid 
 
-    Write-Output $ImportSQL
+    Write-Verbose "Executing the following SQL:`n $ImportSQL"
 
     # Execute INSERT statement to insert lesson into database
-    # Invoke-Sqlcmd2 -Query $ImportSQL @ConnectionParams
+    Invoke-Sqlcmd2 -Query $ImportSQL @ConnectionParams
 
         
 }
@@ -131,6 +135,10 @@ function Register-Lesson
               ,       @as_lesson_id = '$LessonName'
              ;" 
 
+    $LessonSid = Invoke-Sqlcmd2 -Query $Query @ConnectionParams -As PSObject |
+                 Select-Object -ExpandProperty lesson_sid
+
+    Write-Output $LessonSid 
 }
 
 function Clear-LessonSteps
@@ -738,11 +746,11 @@ function ConvertTo-ImportSQL
     {
         $SectionNameToRows[$Section.Name] = $Section.Step | 
             Select-Object @{n="StepPrompt"; e={(ConvertTo-CleanText $_.Prompt)}},
-                          @{n="RequiresPause"; e={[bool]$_.RequiresPause}},
-                          @{n="RequiresSolution"; e = {[bool]$_.RequiresSolution}}, 
-                          @{n="RequiresCodeExecution"; e ={[bool]$_.RequiresCodeExecution}},
-                          @{n="RequiresSetVariable"; e={[bool]$_.RequiresSetVariable}}, 
-                          @{n="RequiresSolutionExecution"; e={[bool]$_.Solution.RequiresExecution}},
+                          @{n="RequiresPause"; e={[bool][int]$_.RequiresPauseLesson}},
+                          @{n="RequiresSolution"; e = {[bool][int]$_.RequiresSolution}}, 
+                          @{n="RequiresCodeExecution"; e ={[bool][int]$_.RequiresCodeExecution}},
+                          @{n="RequiresSetVariable"; e={[bool][int]$_.RequiresSetVariable}}, 
+                          @{n="RequiresSolutionExecution"; e={[bool][int]$_.Solution.RequiresExecution}},
                           @{n="CodeToExecute"; e={(ConvertTo-CleanText $_.CodeToExecute)}},
                           @{n="VariableToSet"; e={(ConvertTo-CleanText $_.VariableToSet)}}, 
                           @{n="SolutionExpression"; e={(ConvertTo-CleanText $_.Solution.Expression)}} | 
@@ -770,11 +778,13 @@ function ConvertTo-CleanText
 {
     <#
         .SYNOPSIS 
-        Removes unwanted whitespace from a string
+        Removes unwanted whitespace from a string and escapes quotation marks
 
         .DESCRIPTION
         Removes empty lines and lines containing only whitespace. 
         Trims the whitespace at the beginning and end of each non-whitespace line. 
+        Doubles any occurrence of single quotation marks to prevent SQL Server from 
+        reading each quotation mark as a string terminator. 
     #>
     [CmdletBinding()]
     param 
@@ -787,7 +797,8 @@ function ConvertTo-CleanText
     # Remove empty lines and those only containing whitespace
     Where-Object -FilterScript {$_ -notmatch "^\s*$"} | 
     # Remove whitespace at beginning and end of each line
-    ForEach-Object {$_ -replace "^\s+","" -replace "\s+$",""} 
+    ForEach-Object {$_ -replace "(^\s+)|(\s+$)", ""} | 
+    ForEach-Object {$_ -replace "'", "''"} 
 
     Write-Output ($CleanText -join "`n")
 }
@@ -837,6 +848,9 @@ function ConvertTo-ImportSQLRow
         [switch] $RequiresSolution
     ,
         [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [switch] $RequiresCodeExecution
+    ,
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [switch] $RequiresSetVariable
     ,
         [Parameter(ValueFromPipelineByPropertyName=$true)]
@@ -865,6 +879,7 @@ function ConvertTo-ImportSQLRow
 
         ,   [int] $RequiresPause.IsPresent
         ,   [int] $RequiresSolution.IsPresent
+        ,   [int] $RequiresCodeExecution.IsPresent
         ,   [int] $RequiresSetVariable.IsPresent
         ,   [int] $RequiresSolutionExecution.IsPresent 
 

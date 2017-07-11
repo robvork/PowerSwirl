@@ -1,0 +1,8 @@
+IF TYPE_ID('dbo.step') IS NOT NULL
+	DROP TYPE dbo.step;
+GO
+
+CREATE TYPE dbo.STEP
+FROM INT
+NOT NULL;
+GO

@@ -246,63 +246,72 @@ function Start-PowerSwirlLesson
 
     $LessonContent = Get-LessonContent @Params
     Write-Verbose "Beginning lesson"
-    
-    $PauseLesson = -not $DisableForcePause.IsPresent
+
     for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
     {
         $CurrentStep = $LessonContent[$StepIdx]
         $StepNumCurrent = $CurrentStep.stepNum
         $StepPrompt = $CurrentStep.stepPrompt
-        $StepRequiresInput = [bool] $CurrentStep.requiresInput
+        $StepRequiresPause = $CurrentStep.requiresPause
+        $StepRequiresSolution = [bool] $CurrentStep.requiresSolution
+        $StepRequiresCodeExecution = [bool] $CurrentStep.requiresCodeExecution
+        $StepRequiresSetVariable = [bool] $CurrentStep.requiresSetVariable
         Write-Verbose "Lesson step $StepNumCurrent"
 
         Write-LessonPrompt -Prompt $StepPrompt 
 
-        if($StepRequiresInput)
+        if($StepRequiresCodeExecution)
         {
-            Write-Verbose "Step requires input"
-            # The first time the step is encountered, $PauseLesson should be true, so the lesson will be paused
-            if($PauseLesson)
+            $CodeToExecute = $CurrentStep.codeToExecute
+            $Res = Invoke-Expression $CodeToExecute
+            if($StepRequiresSetVariable)
             {
-                Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
-                Write-Verbose "Pausing lesson and saving user's progress"
-                $SaveLessonParams = @{
-                    ServerInstance = $ServerInstance
-                ;   Database = $Database
-                ;   CourseSid = $CourseSid
-                ;   LessonSid = $LessonSid
-                ;   StepNum = $StepNumCurrent
-                ;   UserSid = $UserSid 
-                }
-                Save-Lesson @SaveLessonParams
-                return
+                $VariableToSet = $CurrentStep.variableToSet
+                Set-Variable -Name $VariableToSet -Value $Res -Scope Global
             }
+        }
 
-            # The second time the step is encountered, we just resumed a lesson with $DisableForcePause = true, so we don't pause again
-            else
-            {
-                $Solution = $CurrentStep.solution
-                $ExecuteCode = [bool] $CurrentStep.executeCode
-                do
-                {
-                    try
-                    {
-                        $UserInput = Read-StepInput 
-                        Test-StepInput -UserInput $UserInput -Solution $Solution -ExecuteCode:$ExecuteCode
-                        Write-UserCorrect
-                        Write-Verbose "User answered correctly."
-                        break
-                    }
-                    catch
-                    {
-                        Write-UserIncorrect
-                        Write-Verbose "User answered incorrectly. Prompting for retry."
-                    }
-                }
-                while($true) 
-                $PauseLesson = $true 
+        if($StepRequiresPause -and (-not $DisableForcePause))
+        {
+            Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
+            Write-Verbose "Pausing lesson and saving user's progress"
+            $SaveLessonParams = @{
+                ServerInstance = $ServerInstance
+            ;   Database = $Database
+            ;   CourseSid = $CourseSid
+            ;   LessonSid = $LessonSid
+            ;   StepNum = $StepNumCurrent
+            ;   UserSid = $UserSid 
             }
-            
+            Save-Lesson @SaveLessonParams
+            return
+        }
+
+        if($StepRequiresSolution)
+        {
+            Write-Verbose "Step requires solution"
+            # The first time the step is encountered, $PauseLesson should be true, so the lesson will be paused
+            # The second time the step is encountered, we just resumed a lesson with $DisableForcePause = true, so we don't pause again
+           
+            $SolutionExpression = $CurrentStep.solutionExpression
+            $RequiresSolutionExecution = [bool] $CurrentStep.requiresSolutionExecution
+            do
+            {
+                try
+                {
+                    $UserInput = Read-StepInput 
+                    Test-StepInput -UserInput $UserInput -Solution $SolutionExpression -ExecuteCode:$RequiresSolutionExecution
+                    Write-UserCorrect
+                    Write-Verbose "User answered correctly."
+                    break
+                }
+                catch
+                {
+                    Write-UserIncorrect
+                    Write-Verbose "User answered incorrectly. Prompting for retry."
+                }
+            }
+            while($true)   
         }
         else
         {
@@ -314,6 +323,220 @@ function Start-PowerSwirlLesson
 
     Write-Verbose "Lesson completed"
     Write-Information "Lesson completed. Type 'Start-PowerSwirl' to explore available lessons or use 'Start-PowerSwirlLesson' with appropriate parameters to start a new lesson."
+}
+
+function Install-PowerSwirl
+{
+    [CmdletBinding()]
+    param
+    (
+        [String] $ServerInstance 
+    ,
+        [String] $Database = "PowerSwirl"
+    ,
+        [Switch] $Force
+    ,
+        [String] $DataTypesPath  
+    ,
+        [String] $TablesPath  
+    ,
+        [String] $ConstraintsPath  
+    ,
+        [String] $FunctionsPath
+    ,
+        [String] $ProceduresPath
+    ,
+        [String] $ViewsPath   
+    ,
+        [String] $TriggersPath
+    )
+
+    <# 
+     **** Outline ****
+     Is $ServerInstance valid?
+     => Yes 
+        Proceed
+     => No
+        Halt
+
+     Does $Database already exist on $ServerInstance?
+     => Yes
+         Was force specified? 
+         => Yes
+                 Kill connections and drop database
+         => No 
+                 Raise error
+     => No 
+         Proceed with the installation process
+
+     # For each (ObjectType, Path), is the path empty?
+        # => Yes 
+            # Continue to the next pair
+        # => No
+            # Is the Path valid?
+            # => Yes
+                # Run all *.sql scripts at that path (no recursion) against $ServerInstance, $Database
+
+     *Object creation order*
+     Create database
+     Create data types
+     Create tables
+     Create constraints
+     Create triggers
+     Create functions
+     Create procedures 
+     Create views
+
+     
+    #>
+
+    try 
+    {
+        Set-StrictMode -Version Latest
+
+        # Is $ServerInstance a reachable SQL Server Instance? 
+        Write-Verbose "Testing SQL Server Instance '$ServerInstance'"
+        Test-SQLServerInstance $ServerInstance -ConnectionTimeout 5
+        
+        # Does $ServerInstance already have a database named $Database?
+        Write-Verbose "Checking whether database '$Database' already exists on $ServerInstance"
+        [string] $Query = "
+                    SELECT 
+                        CASE 
+                            WHEN EXISTS (SELECT * FROM sys.databases WHERE name = '$Database')
+                            THEN 
+                                1
+                            ELSE 
+                                0
+                        END AS databaseExists
+                    ;
+                "
+
+        [bool] $databaseExists = Invoke-Sqlcmd -ServerInstance $ServerInstance -Database "master" -ConnectionTimeout 3 -Query $Query |
+                                 Select-Object -ExpandProperty databaseExists
+
+        # If database exists, we need to determine whether we can safely clobber it. We clobber only if the Force parameter is used
+        if($databaseExists)
+        {
+            Write-Verbose "Database exists"
+            if($Force)
+            {
+                Write-Verbose "Force parameter specified. Dropping database '$Database'"
+                [String] $Query = "
+                        BEGIN
+                            ALTER DATABASE [$Database]
+                            SET SINGLE_USER
+                            WITH ROLLBACK IMMEDIATE;
+
+                            DROP DATABASE [$Database];
+                        END;
+                        GO
+                "
+                Invoke-Sqlcmd -ServerInstance $ServerInstance -Database "master" -Query $Query 
+            }
+            else 
+            {
+                Write-Verbose "Force parameter not specified. Halting."
+                throw "Database '$Database' already exists on '$ServerInstance' and -Force was not enabled. Use -Force to confirm overwriting this database."    
+            }
+        }
+        else {
+            Write-Verbose "Database does not exist"
+        }
+
+        # Beyond this point, either the database existed and we dropped it, or it did not exist. In either case, we can create a fresh database and all of its attendant objects
+
+        # Create database
+        Write-Verbose "Creating database '$Database'"
+        [string] $Query = "CREATE DATABASE [$Database];"
+
+        Invoke-Sqlcmd -ServerInstance $ServerInstance -Database "master" -Query $Query 
+
+        # Define order of objects to be compiled. By design, within each object type, the order of script execution is irrelevant.
+        Write-Verbose "Defining object to path mappings"
+        $ObjectToScriptMaps = @(
+            @{
+                ObjectType="DataTypes";
+                Path=$DataTypesPath
+            },
+            @{
+                ObjectType="Tables";       
+                Path=$TablesPath
+            },
+            @{
+                ObjectType="Constraints";  
+                Path=$ConstraintsPath
+            },
+            @{
+                ObjectType="Triggers";     
+                Path=$TriggersPath
+            },
+            @{
+                ObjectType="Functions";    
+                Path=$FunctionsPath
+            },
+            @{
+                ObjectType="Procedures";   
+                Path=$ProceduresPath
+            },
+            @{
+                ObjectType="Views";
+                Path=$ViewsPath
+            }
+        )
+
+        # Loop through the object types in the order listed above. 
+        Write-Verbose "Iterating over object to path mappings"
+        for($i = 0; $i -lt $ObjectToScriptMaps.Length; $i++)
+        {
+            $map = $ObjectToScriptMaps[$i]
+            $objectType = $map["ObjectType"]
+            $path = $map["Path"]
+            Write-Verbose "Defining objects of type '$objectType'"
+
+            # Is the path empty or NULL?
+            if($path -eq "" -or $path -eq $null)
+            {
+                # Proceed to the next object type. Note that we are being lenient here because we may not need each object type to make the database operational
+                Write-Verbose "No path specified for objectType = '$objectType'"
+                continue 
+            }
+            # Does the path indicate a valid directory?
+            elseif (-not (Test-Path $path -PathType Container))
+            {
+                Write-Verbose "Invalid path detected"
+                throw "ObjectType '$objectType' has an invalid path at '$path'"
+            } else 
+            {
+                # Run 0 or more SQL scripts found at that path.
+                Write-Verbose "Fetching scripts for objectType = '$objectType'"
+                $scripts = Get-ChildItem $path -Filter *.sql | 
+                           Select-Object -ExpandProperty FullName
+                if($scripts -eq $null)
+                {
+                    Write-Verbose "No SQL scripts found for objectType = '$objectType'"
+                    continue 
+                }
+                else 
+                {
+                    # The order of script execution is irrelevant
+                    foreach($s in $scripts)
+                    {
+                        Write-Verbose "Creating objectType '$objectType' by running script '$s' on $ServerInstance.$Database"
+                        Invoke-Sqlcmd -ServerInstance $ServerInstance -Database $Database -InputFile $s 
+                    }
+                }
+            }
+
+        }
+        
+    }
+    catch 
+    {
+        throw $_.Exception.Message
+    }
+
+   
 }
 
 Set-Alias -Name "psw" -Value "Start-PowerSwirl"

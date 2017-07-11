@@ -1,11 +1,12 @@
-<#
-function Read-SQLServerInstance
-function Read-SQLServerDatabase
-function Read-PSwirlUser
-function Test-PSwirlUser
-function Initialize-PSwirlStream
-#>
-Import-Module "C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl" -Force 
+param
+(
+    $TestServerInstance
+,
+    $TestDatabase
+)
+
+Get-Module -Name "PowerSwirl" -All | Remove-Module -Force 
+Import-Module "PowerSwirl" -Force -ErrorAction Stop 
 
 InModuleScope "PowerSwirl" {
 
@@ -127,9 +128,3 @@ InModuleScope "PowerSwirl" {
         }
     }
 }
-
-
-
-<#
-     
-#>

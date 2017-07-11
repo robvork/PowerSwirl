@@ -54,19 +54,21 @@ BEGIN
 	SELECT 
 		   step_num AS stepNum
 		  ,step_prompt AS stepPrompt
-		  ,requires_input_flag AS requiresInput
-		  ,execute_code_flag AS executeCode
-		  ,store_var_flag AS storeVar
-		  ,variable AS variable
-		  ,solution AS solution
+		  ,requires_pause AS requiresPause
+		  ,requires_solution AS requiresSolution
+		  ,requires_code_execution AS requiresCodeExecution
+		  ,requires_set_variable AS requiresSetVariable
+		  ,requires_solution_execution AS requiresExecuteSolution
+		  ,code_to_execute AS codeToExecute
+		  ,variable_to_set AS variableToSet
+		  ,solution_expression AS solutionExpression
+		  
 	FROM 
 		  dbo.lesson_dtl 
 	WHERE 
 		  course_sid = @ai_course_sid
 		  AND 
 		  lesson_sid = @ai_lesson_sid
-	ORDER BY 
-		  step_num
 	;
 
 END

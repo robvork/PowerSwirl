@@ -28,5 +28,5 @@ $lessonFile = 'C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl\Lessons\in
 
 Get-Content -Path $lessonFile -Raw | 
 ConvertFrom-LessonMarkup | 
-Import-Lesson @ConnectionParams -OverWriteLesson -CreateNewCourse
+Import-Lesson @ConnectionParams -OverWriteLesson -CreateNewCourse -Verbose
 

@@ -1,10 +1,12 @@
-﻿$VerbosePreference = "SilentlyContinue"
-$ErrorActionPreference = "SilentlyContinue"
+﻿param
+(
+    $TestServerInstance
+,
+    $TestDatabase
+)
 
-$ThisModule = "$($MyInvocation.MyCommand.Path -replace '\.Tests\.ps1$', '').psm1"
-$ThisModuleName = (($ThisModule | Split-Path -Leaf) -replace '\.psm1')
-Get-Module -Name $ThisModuleName -All | Remove-Module -Force 
-Import-Module -Name $ThisModule -Force -ErrorAction Stop 
+Get-Module -Name "PowerSwirl" -All | Remove-Module -Force 
+Import-Module "PowerSwirl" -Force -ErrorAction Stop 
 
 InModuleScope "PowerSwirl" {
     Describe "Start-PowerSwirl" -Tag "Start-PowerSwirl", "Unit" {

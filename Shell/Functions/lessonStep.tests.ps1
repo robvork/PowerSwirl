@@ -1,8 +1,14 @@
-Import-Module PowerSwirl -Force 
+param
+(
+    $TestServerInstance
+,
+    $TestDatabase
+)
+
+Get-Module -Name "PowerSwirl" -All | Remove-Module -Force 
+Import-Module "PowerSwirl" -Force -ErrorAction Stop 
 
 InModuleScope PowerSwirl {
-    $TestServerInstance = "ASPIRING\SQL16"
-    $TestDatabase = "PowerSwirl_test"
 
     Describe "Get-LessonInfo" {
         BeforeAll {
