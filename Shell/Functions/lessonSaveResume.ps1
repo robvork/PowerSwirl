@@ -12,10 +12,6 @@ function Save-Lesson
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-        ,
-        [String] $Database
-        ,
         [Int] $CourseSid
         ,
         [Int] $LessonSid
@@ -24,6 +20,11 @@ function Save-Lesson
         ,
         [Int] $StepNum
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
 
     $Params = @{
         ServerInstance=$ServerInstance;
@@ -64,12 +65,12 @@ function Resume-Lesson
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-        ,
-        [String] $Database
-        ,
         [Int] $UserSid
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $Params = @{
         ServerInstance=$ServerInstance;

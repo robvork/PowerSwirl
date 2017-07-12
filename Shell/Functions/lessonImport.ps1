@@ -3,10 +3,6 @@ function Import-Lesson
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance
-    ,
-        [String] $Database
-    ,
         [Parameter(ValueFromPipeline=$true)]
         [String] $LessonXML
     ,
@@ -14,7 +10,10 @@ function Import-Lesson
     ,
         [Switch] $CreateNewCourse
     )
-
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+    
     $ConnectionParams = @{
                           ServerInstance=$ServerInstance;
                           Database=$Database;
@@ -93,11 +92,12 @@ function Register-Course
     [CmdletBinding()]
     param
     (
-        $ServerInstance 
-    ,   $Database 
-    ,   $CourseName 
+        $CourseName 
     )
 
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
     $ConnectionParams = @{
         ServerInstance=$ServerInstance; 
         Database=$Database; 
@@ -119,11 +119,13 @@ function Register-Lesson
     [CmdletBinding()]
     param
     (
-        $ServerInstance 
-    ,   $Database 
-    ,   $CourseSID
+        $CourseSID
     ,   $LessonName 
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $ConnectionParams = @{
         ServerInstance=$ServerInstance; 
@@ -146,15 +148,14 @@ function Clear-LessonSteps
     [CmdletBinding()]
     param
     (
-        $ServerInstance
-    ,
-        $Database 
-    ,
         $CourseSid
     ,
         $LessonSid 
     )
 
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
     $ConnectionParams = @{
         ServerInstance=$ServerInstance; 
         Database=$Database; 

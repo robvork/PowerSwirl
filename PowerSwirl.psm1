@@ -11,12 +11,6 @@ function Start-PowerSwirl
     param
     (
         [String]
-        $ServerInstance
-
-    ,   [String]
-        $Database
-
-    ,   [String]
         $User
 
     ,   [String] 
@@ -28,6 +22,9 @@ function Start-PowerSwirl
     ,   [Int]
         $Step
     )
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     #region initialize information stream
     Write-Verbose "<* Initializing information stream variable for output"
@@ -214,10 +211,6 @@ function Start-PowerSwirlLesson
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-        ,
-        [String] $Database
-        ,
         [Int] $CourseSid
         ,
         [Int] $LessonSid
@@ -228,6 +221,10 @@ function Start-PowerSwirlLesson
         ,
         [Switch] $DisableForcePause
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $Params = @{
        ServerInstance=$ServerInstance
@@ -330,10 +327,6 @@ function Install-PowerSwirl
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-    ,
-        [String] $Database = "PowerSwirl"
-    ,
         [Switch] $Force
     ,
         [String] $DataTypesPath  
@@ -393,6 +386,9 @@ function Install-PowerSwirl
     try 
     {
         Set-StrictMode -Version Latest
+        $PowerSwirlConnection = Get-PowerSwirlConnection
+        $ServerInstance = $PowerSwirlConnection.ServerInstance 
+        $Database = $PowerSwirlConnection.Database 
 
         # Is $ServerInstance a reachable SQL Server Instance? 
         Write-Verbose "Testing SQL Server Instance '$ServerInstance'"
@@ -537,6 +533,67 @@ function Install-PowerSwirl
     }
 
    
+}
+
+function Set-PowerSwirlConnection
+{
+    param
+    (
+        [String] $ServerInstance
+    ,
+        [String] $Database
+    )
+
+    $powerswirlPath = Get-Module -Name "PowerSwirl" | 
+                      Select-Object -ExpandProperty Path | 
+                      Split-Path -Parent 
+    $configPath = (Join-Path $powerswirlPath "config.xml")
+    if(-not (Test-Path $configPath))
+    {
+        $configFileData = "<config>`n" + 
+                          "`t<ServerInstance>$ServerInstance</ServerInstance>`n" + 
+                          "`t<Database>$Database</Database>`n" + 
+                          "</config>"
+        Set-Content -Path $configPath -Value $configFileData
+    }
+    else 
+    {
+        $config = [xml] (Get-Content $configPath)
+
+        # Configure SQL Server Instance and Database names
+        $config.config.ServerInstance = $ServerInstance
+        $config.config.Database = $Database
+        
+        $config.Save($configPath)
+    }
+    
+    
+    
+}
+
+function Get-PowerSwirlConnection
+{
+    $powerswirlPath = Get-Module -Name "PowerSwirl" | 
+                      Select-Object -ExpandProperty Path | 
+                      Split-Path -Parent 
+    $configPath = (Join-Path $powerswirlPath "config.xml")
+    if(-not (Test-Path $configPath))
+    {
+        throw "The config file does not exist. Use Set-PowerSwirlConnection to create the config file."
+    }
+    $config = [xml] (Get-Content $configPath)
+    
+    # Configure SQL Server Instance and Database names
+    $ServerInstance = $config.config.ServerInstance 
+    $Database = $config.config.Database 
+
+    $ConfigProperties = @{
+        ServerInstance=$ServerInstance;
+        Database=$Database;
+    }
+    $Config = New-Object -TypeName PSObject -Property $ConfigProperties
+
+    Write-Output $Config 
 }
 
 Set-Alias -Name "psw" -Value "Start-PowerSwirl"

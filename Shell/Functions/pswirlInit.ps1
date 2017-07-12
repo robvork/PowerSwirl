@@ -62,14 +62,11 @@ function Test-PSwirlUser
     param
     (
         [String]
-        $ServerInstance
-    ,
-        [String]
-        $Database 
-    ,
-        [String]
         $User  
     )
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $Query = "EXECUTE dbo.p_get_user @as_user_id = '$User'"
     $TestResult = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query

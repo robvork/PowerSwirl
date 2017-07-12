@@ -2,14 +2,14 @@ function Get-LessonInfo
 {
     param
     (
-        [String] $ServerInstance 
-        ,
-        [String] $Database
-        ,
         [Int] $CourseSid
         ,
         [Int] $LessonSid
     )
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
     Write-Verbose "Getting lesson information"
@@ -39,14 +39,15 @@ function Get-LessonContent
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-        ,
-        [String] $Database
-        ,
         [Int] $CourseSid
         ,
         [Int] $LessonSid
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
 
     $Params = @{ServerInstance=$ServerInstance; Database=$Database}
     Write-Verbose "Getting lesson content"

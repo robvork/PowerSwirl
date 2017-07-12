@@ -70,13 +70,14 @@ function Get-Course
 {
     param
     (
-        [String] $ServerInstance 
-    ,   [String] $Database
-    ,   [String] $CourseID
+       [String] $CourseID
     )
 
     try
     {
+        $PowerSwirlConnection = Get-PowerSwirlConnection
+        $ServerInstance = $PowerSwirlConnection.ServerInstance 
+        $Database = $PowerSwirlConnection.Database 
         Test-SQLServerInstance $ServerInstance
         Test-SQLServerDatabase -ServerInstance $ServerInstance -Database $Database 
         
@@ -101,12 +102,18 @@ function Test-PSwirlCourse
 {
     param
     (
-        $ServerInstance 
-    ,   $Database 
-    ,   $CourseID
+        $CourseID
     )
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+    $Params = @{
+        ServerInstance=$ServerInstance;
+        Database=$Database; 
+        CourseID=$CourseID;
+    }
 
-    $TestResult = Get-Course @PSBoundParameters
+    $TestResult = Get-Course @Params 
 
     if($TestResult.CourseExists)
     {
@@ -123,15 +130,13 @@ function Get-Lesson
     [CmdletBinding()]
     param
     (
-        [String] $ServerInstance 
-    ,
-        [String] $Database
-    ,
         [Int] $CourseSID 
     ,
         [String] $LessonID
     )
-
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
     try
     {
         Test-SQLServerInstance $ServerInstance
@@ -163,13 +168,20 @@ function Test-PSwirlLesson
 {
      param
     (
-        $ServerInstance 
-    ,   $Database 
-    ,   $CourseSID
+        $CourseSID
     ,   $LessonID 
     )
 
-    $TestResult = Get-Course @PSBoundParameters
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+    $Params = @{
+        ServerInstance=$ServerInstance; 
+        Database=$Database; 
+        CourseSID=$CourseSID;
+        LessonID=$LessonID; 
+    }
+    $TestResult = Get-Course @Params
 
     if($TestResult.LessonExists)
     {
@@ -209,12 +221,11 @@ function Get-CourseSelections
     [CmdletBinding()]
     param
     (
-        [string]
-        $ServerInstance 
-    
-    ,   [string]
-        $Database
     )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $Query = "EXEC dbo.p_get_courses"
     $Courses = Invoke-SqlCmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
@@ -242,13 +253,16 @@ function Get-Courses
     [CmdletBinding()]
     param
     (
-        [string]
-        $ServerInstance 
-    
-    ,   [string]
-        $Database
     )
-    Get-CourseSelections @PSBoundParameters | 
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
+    $Params = @{
+        ServerInstance = $ServerInstance;
+        Database=$Database; 
+    }
+    Get-CourseSelections @Params | 
     Select-Object -ExpandProperty Course
 }
 
@@ -265,22 +279,14 @@ function Get-LessonSelections
     [CmdletBinding()]
     param
     (
-        [string]
-        $ServerInstance
-
-     ,  
-        [string]
-        $Database
-
-     <#
-        [string]
-        $CourseID
-     #>
-     , 
         [int]
         $CourseSID
     )
     
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
     $Query = "EXECUTE dbo.p_get_lessons @ai_course_sid = $CourseSid"
     $Lessons = Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query 
     foreach($l in $Lessons)
@@ -320,6 +326,7 @@ function Test-HasNoDBNulls
         throw "Values of '$Property' must be non-null"
     }   
 }
+
 
 function Test-HasNoDuplicates
 {

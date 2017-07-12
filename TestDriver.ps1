@@ -3,13 +3,14 @@ function Test-PowerSwirl
     [CmdletBinding()]
     param
     (
-        $ServerInstance = "ASPIRING\SQL16"
-    ,
-        [Parameter(Mandatory=$true, HelpMessage="Enter the database to test")]
-        $Database
-    ,
         $ModuleRoot = "C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl"
     )
+    
+    Import-Module PowerSwirl -Force 
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
 
     $InstallScripts = @{
         DataTypesPath = "$ModuleRoot\Database\Data Types";
@@ -24,16 +25,9 @@ function Test-PowerSwirl
     Install-PowerSwirl -ServerInstance $ServerInstance -Database $Database -Force -ErrorAction Stop @InstallScripts
 
     $Tests = Get-ChildItem $ModuleRoot -Filter *.tests.ps1 -Recurse | 
-            Select-Object -ExpandProperty FullName | 
-            ForEach-Object {
-                Write-Output @{Path = $_;
-                            Parameters=@{
-                                    TestServerInstance = $ServerInstance;
-                                    TestDatabase = $Database;
-                                } 
-                            }
-            }
+    Select-Object -ExpandProperty FullName 
 
-    Write-Output $Tests 
-    #Invoke-Pester -Script $Tests 
+    Invoke-Pester $Tests 
 }
+
+Test-PowerSwirl
