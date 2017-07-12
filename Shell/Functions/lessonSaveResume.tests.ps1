@@ -1,21 +1,17 @@
-param
-(
-    $TestServerInstance
-,
-    $TestDatabase
-)
-
 Get-Module -Name "PowerSwirl" -All | Remove-Module -Force 
 Import-Module "PowerSwirl" -Force -ErrorAction Stop 
 
 InModuleScope PowerSwirl {
     Describe "Save-Lesson" {
         BeforeEach {
+            $PowerSwirlConnection = Get-PowerSwirlConnection
+            $ServerInstance = $PowerSwirlConnection.ServerInstance 
+            $Database = $PowerSwirlConnection.Database 
             # Clear any existing user_course entries
             $Query = "TRUNCATE TABLE dbo.user_course;" 
             $Params = @{
-                ServerInstance=$TestServerInstance;
-                Database=$TestDatabase;
+                ServerInstance=$ServerInstance;
+                Database=$Database;
                 Query=$Query; 
             }
             $Params["Query"] = $Query 
@@ -63,8 +59,6 @@ InModuleScope PowerSwirl {
                 $UserSid = 1
                 $StepNum = 4
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
                     CourseSid=$CourseSid;
                     LessonSid=$LessonSid;
                     UserSid=$UserSid;
@@ -76,8 +70,8 @@ InModuleScope PowerSwirl {
             It "should insert exactly one row into user_pause_state for the specified user" {
                 $Query = "SELECT COUNT(*) AS rc FROM dbo.user_pause_state WHERE user_sid = $UserSid;"
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
                 $rc = Invoke-Sqlcmd2 @Params -As PSObject | Select-Object -ExpandProperty rc
@@ -85,14 +79,16 @@ InModuleScope PowerSwirl {
             }
 
             It "should maintain at most one row in user_pause_state, even if the user already has pause state and saves again" {
+                $Params = @{} 
+                $Params["UserSid"] = 1
                 $Params["StepNum"] = 10
                 $Params["CourseSid"] = 2
                 $Params["LessonSid"] = 1
                 Save-Lesson @Params 
                 $Query = "SELECT COUNT(*) AS rc FROM dbo.user_pause_state WHERE user_sid = $UserSid;"
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
                 $rc = Invoke-Sqlcmd2 @Params -As PSObject | Select-Object -ExpandProperty rc
@@ -124,8 +120,8 @@ InModuleScope PowerSwirl {
                         ;"
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
 
@@ -162,8 +158,8 @@ InModuleScope PowerSwirl {
                         ;"
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
 
@@ -181,8 +177,6 @@ InModuleScope PowerSwirl {
                 $StepNum1 = 4
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
                     CourseSid=$CourseSid1;
                     LessonSid=$LessonSid1;
                     UserSid=$UserSid1;
@@ -206,8 +200,8 @@ InModuleScope PowerSwirl {
             It "should insert exactly two rows into user_pause_state" {
                 $Query = "SELECT COUNT(*) AS rc FROM dbo.user_pause_state;"
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
                 $rc = Invoke-Sqlcmd2 @Params -As PSObject | Select-Object -ExpandProperty rc
@@ -226,8 +220,8 @@ InModuleScope PowerSwirl {
                 )
                 $Query = "SELECT COUNT(*) AS rc FROM dbo.user_pause_state WHERE user_sid = $UserSid;"
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
                 $rc = Invoke-Sqlcmd2 @Params -As PSObject | Select-Object -ExpandProperty rc
@@ -265,8 +259,8 @@ InModuleScope PowerSwirl {
                         ;"
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
 
@@ -338,8 +332,8 @@ InModuleScope PowerSwirl {
                         ;"
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     Query=$Query; 
                 }
 
@@ -368,10 +362,13 @@ InModuleScope PowerSwirl {
         $StepNum3 = 24
 
         BeforeEach {
+            $PowerSwirlConnection = Get-PowerSwirlConnection
+            $ServerInstance = $PowerSwirlConnection.ServerInstance 
+            $Database = $PowerSwirlConnection.Database 
             $Query = "TRUNCATE TABLE dbo.user_pause_state;"
             $Params = @{
-                ServerInstance=$TestServerInstance;
-                Database=$TestDatabase;
+                ServerInstance=$ServerInstance;
+                Database=$Database;
                 Query=$Query; 
             }
 

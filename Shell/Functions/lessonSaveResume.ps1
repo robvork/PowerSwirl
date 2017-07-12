@@ -94,7 +94,7 @@ function Resume-Lesson
         Write-Verbose "LessonSid = $LessonSid"
         Write-Verbose "StepNum = $StepNum"
 
-        $Params.Remove("Query")
+        $Params = @{}
         $Params["CourseSid"] = $CourseSid 
         $Params["LessonSid"] = $LessonSid 
         $Params["StepNumStart"] = $StepNum

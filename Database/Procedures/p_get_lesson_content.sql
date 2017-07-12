@@ -58,7 +58,7 @@ BEGIN
 		  ,requires_solution AS requiresSolution
 		  ,requires_code_execution AS requiresCodeExecution
 		  ,requires_set_variable AS requiresSetVariable
-		  ,requires_solution_execution AS requiresExecuteSolution
+		  ,requires_solution_execution AS requiresSolutionExecution
 		  ,code_to_execute AS codeToExecute
 		  ,variable_to_set AS variableToSet
 		  ,solution_expression AS solutionExpression
