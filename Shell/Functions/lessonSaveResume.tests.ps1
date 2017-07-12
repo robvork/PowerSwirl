@@ -411,7 +411,7 @@ InModuleScope PowerSwirl {
             ,
                 [Int] $stepNumExpected
             )
-            Resume-Lesson -ServerInstance $TestServerInstance -Database $TestDatabase -UserSid $userSidExpected 
+            Resume-Lesson -UserSid $userSidExpected 
             Assert-MockCalled Start-PowerSwirlLesson -Scope It -ExclusiveFilter  {
                 $UserSid -eq $UserSidExpected -and 
                 $CourseSid -eq $CourseSidExpected -and 

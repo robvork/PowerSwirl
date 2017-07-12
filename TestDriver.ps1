@@ -22,7 +22,7 @@ function Test-PowerSwirl
         TriggersPath = "$ModuleRoot\Database\Triggers";
     }
 
-    Install-PowerSwirl -ServerInstance $ServerInstance -Database $Database -Force -ErrorAction Stop @InstallScripts
+    Install-PowerSwirl -Force -ErrorAction Stop @InstallScripts
 
     $Tests = Get-ChildItem $ModuleRoot -Filter *.tests.ps1 -Recurse | 
     Select-Object -ExpandProperty FullName 

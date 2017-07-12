@@ -1,10 +1,3 @@
-param
-(
-    $TestServerInstance
-,
-    $TestDatabase
-)
-
 Get-Module -Name "PowerSwirl" -All | Remove-Module -Force 
 Import-Module "PowerSwirl" -Force -ErrorAction Stop 
 
@@ -12,10 +5,13 @@ InModuleScope PowerSwirl {
 
     Describe "Get-LessonInfo" {
         BeforeAll {
+            $PowerSwirlConnection = Get-PowerSwirlConnection
+            $ServerInstance = $PowerSwirlConnection.ServerInstance 
+            $Database = $PowerSwirlConnection.Database 
             $Query = "TRUNCATE TABLE dbo.course_hdr;"
             $Params = @{
-                ServerInstance = $TestServerInstance;
-                Database=$TestDatabase;
+                ServerInstance = $ServerInstance;
+                Database=$Database;
                 Query=$Query;
             }
             Invoke-Sqlcmd2 @Params 
@@ -54,26 +50,28 @@ InModuleScope PowerSwirl {
             ,   lesson_sid
             ,   step_num
             ,   step_prompt
-            ,   requires_input_flag
-            ,   execute_code_flag
-            ,   store_var_flag
+            ,   requires_solution
+            ,   requires_code_execution
+            ,   requires_set_variable
+            ,   requires_solution_execution
+            ,   requires_pause
             )
             VALUES 
-              (1,1,1,'A1 S1',0,0,0)
-            , (1,1,2,'A1 S2',0,0,0)
-            , (1,1,3,'A1 S3',0,0,0)
+              (1,1,1,'A1 S1',0,0,0,0,0)
+            , (1,1,2,'A1 S2',0,0,0,0,0)
+            , (1,1,3,'A1 S3',0,0,0,0,0)
 
-            , (2,1,1,'B1 S1',0,0,0)
-            , (2,1,2,'B1 S2',0,0,0)
-            , (2,1,3,'B1 S3',0,0,0)
-            , (2,1,4,'B1 S4',0,0,0)
+            , (2,1,1,'B1 S1',0,0,0,0,0)
+            , (2,1,2,'B1 S2',0,0,0,0,0)
+            , (2,1,3,'B1 S3',0,0,0,0,0)
+            , (2,1,4,'B1 S4',0,0,0,0,0)
             
-            , (3,1,1,'C1 S1',0,0,0)
-            , (3,1,2,'C1 S2',0,0,0)
-            , (3,1,3,'C1 S3',0,0,0)
-            , (3,1,4,'C1 S4',0,0,0)
-            , (3,1,5,'C1 S5',0,0,0)
-            , (3,1,6,'C1 S6',0,0,0)
+            , (3,1,1,'C1 S1',0,0,0,0,0)
+            , (3,1,2,'C1 S2',0,0,0,0,0)
+            , (3,1,3,'C1 S3',0,0,0,0,0)
+            , (3,1,4,'C1 S4',0,0,0,0,0)
+            , (3,1,5,'C1 S5',0,0,0,0,0)
+            , (3,1,6,'C1 S6',0,0,0,0,0)
             ;
             "
             $Params["Query"] = $Query 
@@ -88,8 +86,8 @@ InModuleScope PowerSwirl {
                 $NumStepsExpected = 3
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     CourseSID=$CourseSID;
                     LessonSID=$LessonSID;
                 }
@@ -144,8 +142,8 @@ InModuleScope PowerSwirl {
                 $NumStepsExpected = 4
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     CourseSID=$CourseSID;
                     LessonSID=$LessonSID;
                 }
@@ -199,8 +197,8 @@ InModuleScope PowerSwirl {
                 $NumStepsExpected = 6
 
                 $Params = @{
-                    ServerInstance=$TestServerInstance;
-                    Database=$TestDatabase;
+                    ServerInstance=$ServerInstance;
+                    Database=$Database;
                     CourseSID=$CourseSID;
                     LessonSID=$LessonSID;
                 }
@@ -253,9 +251,12 @@ InModuleScope PowerSwirl {
 
     Describe "Get-LessonContent" {
         BeforeAll {
+            $PowerSwirlConnection = Get-PowerSwirlConnection
+            $ServerInstance = $PowerSwirlConnection.ServerInstance 
+            $Database = $PowerSwirlConnection.Database 
             $Params = @{
-                ServerInstance=$TestServerInstance;
-                Database=$TestDatabase;
+                ServerInstance=$ServerInstance;
+                Database=$Database;
             }
             $Query = "TRUNCATE TABLE dbo.lesson_dtl;"
             $Params["Query"] = $Query
@@ -268,32 +269,34 @@ InModuleScope PowerSwirl {
             ,   step_num
             ,   step_prompt
 
-            ,   requires_input_flag
-            ,   execute_code_flag
-            ,   store_var_flag
+            ,   requires_solution
+            ,   requires_code_execution
+            ,   requires_set_variable
+            ,   requires_pause
+            ,   requires_solution_execution
             
-            ,   variable
-            ,   solution
+            ,   variable_to_set
+            ,   solution_expression
             )
             VALUES 
-              (1,1,1,'A1 S1',1,0,0, NULL, 'A_ans1')
-            , (1,1,2,'A1 S2',1,1,0, NULL, 'A_ans2')
-            , (1,1,3,'A1 S3',0,0,0, NULL, NULL)
-            , (1,1,4,'A1 S4',1,0,1, 'A_var4', 'A_ans4')
-            , (1,1,5,'A1 S5',0,0,0, NULL, NULL)
+              (1,1,1,'A1 S1',1,0,0,0,0, NULL, 'A_ans1')
+            , (1,1,2,'A1 S2',1,1,0,0,0, NULL, 'A_ans2')
+            , (1,1,3,'A1 S3',0,0,0,0,0, NULL, NULL)
+            , (1,1,4,'A1 S4',1,0,1,0,0, 'A_var4', 'A_ans4')
+            , (1,1,5,'A1 S5',0,0,0,0,0, NULL, NULL)
 
-            , (2,1,1,'B1 S1',0,0,0, NULL, NULL)
-            , (2,1,2,'B1 S2',1,0,1, 'B_var2', 'B_ans2')
-            , (2,1,3,'B1 S3',0,1,1, 'B_var3', 'B_ans3')
-            , (2,1,4,'B1 S4',1,0,1, 'B_var4', 'B_ans4')
+            , (2,1,1,'B1 S1',0,0,0,0,0, NULL, NULL)
+            , (2,1,2,'B1 S2',1,0,1,0,0, 'B_var2', 'B_ans2')
+            , (2,1,3,'B1 S3',0,1,1,0,0, 'B_var3', 'B_ans3')
+            , (2,1,4,'B1 S4',1,0,1,0,0, 'B_var4', 'B_ans4')
             ;
             "
             $Params["Query"] = $Query 
             Invoke-Sqlcmd2 @Params
 
 
-            $CourseContentA1 = Get-LessonContent -ServerInstance $TestServerInstance -Database $TestDatabase -CourseSid 1 -LessonSid 1
-            $CourseContentB1 = Get-LessonContent -ServerInstance $TestServerInstance -Database $TestDatabase -CourseSid 2 -LessonSid 1
+            $CourseContentA1 = Get-LessonContent -CourseSid 1 -LessonSid 1
+            $CourseContentB1 = Get-LessonContent -CourseSid 2 -LessonSid 1
         }
 	    Context "Course A Lesson A1" {
             It "should write 5 objects to the pipeline" {
@@ -303,11 +306,14 @@ InModuleScope PowerSwirl {
             $tc = @(
                 @{propertyName='stepNum'}
                 @{propertyName='stepPrompt'}
-                @{propertyName='requiresInput'}
-                @{propertyName='executeCode'}
-                @{propertyName='storeVar'}
-                @{propertyName='variable'}
-                @{propertyName='solution'}
+                @{propertyName='requiresSolution'}
+                @{propertyName='requiresSolutionExecution'}
+                @{propertyName='requiresCodeExecution'}
+                @{propertyName='requiresSetVariable'}
+                @{propertyName='requiresPause'}
+                @{propertyName='variableToSet'}
+                @{propertyName='solutionExpression'}
+                @{propertyName='codeToExecute'}
             )
             It "should write objects that have a '<propertyName>' property" -TestCases $tc {
                 param 
