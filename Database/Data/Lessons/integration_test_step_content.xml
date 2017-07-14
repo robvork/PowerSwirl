@@ -46,24 +46,31 @@
 			<P> 
 				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v=282), Code Execution YES=282
 			</P>
-			<opt> cv </opt>
-			<code> 282 </code>
-			<var> v </var>
+			<opt> c </opt>
+			<code> 
+				<block> 282 </block>
+				<var> v </var>
+			</code>
+			
 		</T>
 		<T>
 			<P> 
 				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v2=195), Code Execution YES=(194 + 1)
 			</P>
-			<opt> cv </opt>
-			<code> (194 + 1) </code>
-			<var> v </var>
+			<opt> c </opt>
+			<code> 
+				<block> (194 + 1) </block>
+				<var> v2 </var>
+			</code>
 		</T>
 		<T>
 			<P> 
 				Pause NO, Solution NO, Solution Execution NO, Variable NO, Code Execution YES = '$v3 = (200 + 5)'
 			</P>
 			<opt> c </opt>
-			<code> $v3 = (200 + 5) </code>
+			<code> 
+				<block> $v3 = (200 + 5) </block>
+			</code>
 			<var> v </var>
 		</T>
 	</S>

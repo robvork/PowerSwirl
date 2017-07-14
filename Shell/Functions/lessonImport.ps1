@@ -25,14 +25,14 @@ function Import-Lesson
     $LessonName = $Header.LessonName
 
     # Check whether course and lesson already exist. 
-    $Course = Get-Course -CourseID $CourseName @ConnectionParams 
+    $Course = Get-Course -CourseID $CourseName
     $CourseExists = $Course.CourseExists 
     # if a course with name CourseName exists
     if($CourseExists)
     {
         $CourseSid = $Course.CourseSid 
         # check whether a lesson with name LessonName exists within that course
-        $Lesson = Get-Lesson -CourseSID $CourseSid -LessonID $LessonName @ConnectionParams 
+        $Lesson = Get-Lesson -CourseSID $CourseSid -LessonID $LessonName 
         $LessonExists = $Lesson.LessonExists
         if($LessonExists)
         {
@@ -41,7 +41,7 @@ function Import-Lesson
             if($OverwriteLesson)
             {
                 $LessonSid = $Lesson.LessonSid
-                Clear-LessonSteps -CourseSid $CourseSid -LessonSid $LessonSid @ConnectionParams
+                Clear-LessonSteps -CourseSid $CourseSid -LessonSid $LessonSid 
             }
             # if OverwriteLesson is not specified, do not proceed
             else
@@ -51,7 +51,7 @@ function Import-Lesson
         }
         else
         {
-            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName @ConnectionParams
+            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
         }
     }
     # if no such course exists
@@ -453,14 +453,16 @@ function New-ImportLessonStep
         Write-Verbose "Constructing pause lesson block" 
         $RequiresPauseBlock = New-ImportLessonBlock -Name "RequiresPauseLesson" -Contents ([int] $RequiresPause.IsPresent)
 
-        Write-Verbose "Constructing code to execute block" 
+        Write-Verbose "Constructing code execution blocks" 
         $RequiresCodeExecutionBlock = New-ImportLessonBlock -Name "RequiresCodeExecution" -Contents ([int] $RequiresCodeExecution.IsPresent)
         $CodeExecutionBlocks = [String[]] @()
         if($RequiresCodeExecution)
         {
-            $CodeBlock = New-ImportLessonBlock -Name "Code" -Contents $CodeToExecute       
+            $CodeBlock = New-ImportLessonBlock -Name "Code" -Contents $CodeToExecute
+
+            Write-Verbose "Constructing set variable blocks"
             $RequiresSetVariableBlock = New-ImportLessonBlock -Name "RequiresSetVariable" -Contents ([int] $RequiresSetVariable.IsPresent)
-       
+        
             $VariableToSetBlock = [String[]]@()
             if($RequiresSetVariable)
             {
@@ -469,6 +471,9 @@ function New-ImportLessonStep
 
             $CodeExecutionBlocks = New-ImportLessonBlock -Name "CodeToExecute" -Contents ($CodeBlock + $RequiresSetVariableBlock + $VariableToSetBlock)
         }
+
+        
+        
 
         Write-Verbose "Constructing solution block"
         $RequiresSolutionBlock = New-ImportLessonBlock -Name "RequiresSolution" -Contents ([int] $RequiresSolution.IsPresent)
@@ -485,8 +490,8 @@ function New-ImportLessonStep
                      $PromptBlock +
                      $RequiresPauseBlock + 
                      $RequiresCodeExecutionBlock +
-                     $CodeExecutionBlocks + 
                      $RequiresSolutionBlock +
+                     $CodeExecutionBlocks + 
                      $SolutionBlock
                      )
 
@@ -529,18 +534,14 @@ function Get-XMLElement
     param
     (
         $xml
-    ,   $element 
+    ,   [string] $element 
     )
 
-   
+    Test-HasSubElement -xml $xml -element $element
+
     $selection = Invoke-Expression "`$xml.$element"
-    if($selection -eq $null)
-    {
-        throw "'$element' not found"
-    }
-         
-    Write-Output $selection 
-   
+
+    Write-Output $selection    
 }
 
 function Test-HasExactlyOneElement
@@ -569,7 +570,31 @@ function Test-HasOneOrMoreElement
     ,   $element 
     )
     
-    Get-XMLElement -xml $xml -element $element
+    $foundCount = Get-XMLElement -xml $xml -element $element | 
+                  Measure-Object | 
+                  Select-Object -ExpandProperty Count 
+    if($foundCount -eq 0)
+    {
+        throw "The XML element contained 0 '$element' attributes"
+    }
+}
+
+function Test-HasSubElement
+{
+    param
+    (
+         $xml 
+    ,
+        [String] $element
+    )
+
+    $SubElements = $xml | 
+                     Get-Member -MemberType Properties | 
+                     Select-Object -ExpandProperty Name 
+    if($element -notin $subElements)
+    {
+        throw "The XML element does not contain an element '$element'"
+    }
 }
 
 function Test-HasOnlyElementsInList
@@ -648,33 +673,39 @@ function ConvertFrom-LessonMarkup
             $Step = $Steps[$i] 
             # Remove empty lines and tabs from the prompt
             $Prompt = [regex]::Replace((Get-XMLElement $Step "P"), "\n\n|\t", "")
-            $RequiresExecution = $false 
+            $RequiresCodeExecution = $false 
             $RequiresPause = $false 
             $RequiresSolution = $false 
+            $RequiresSolutionExecution = $false
             $RequiresSetVariable = $false 
             $CodeToExecute = $null 
-            $Variable = $null 
+            $VariableToSet = $null 
             $SolutionExpression = $null 
-            $SolutionRequiresExecution = $false
+            
             if("opt" -in ($Step | Get-Member -MemberType Property | Select-Object -ExpandProperty Name))
             {
                 $opt = Get-XMLElement $Step "opt"
                 if($opt.contains("c"))
                 {
-                    $RequiresExecution = $true 
-                    $CodeToExecute = Get-XMLElement $Step "code"
+                    $RequiresCodeExecution = $true 
+                    $Code = Get-XMLElement $Step "code"
+                    $CodeToExecute = Get-XMLElement $Code "block"
+
+                    try {
+                        $VariableToSet = Get-XMLElement $Code "var"
+                        $RequiresSetVariable = $true 
+                    }
+                    catch {
+                        $VariableToSet = $null 
+                        $RequiresSetVariable = $false 
+                    }
                 }   
-                if($opt.contains("v"))
-                {
-                    $RequiresSetVariable = $true
-                    $VariableName = Get-XMLElement $Step "var"
-                }
                 if($opt.contains("s"))
                 {
                     $RequiresSolution = $true 
                     $Solution = Get-XMLElement $Step "soln"
                     $SolutionExpression = Get-XMLElement $Solution "expr"
-                    $SolutionRequiresExecution = [bool] [int] (Get-XMLElement $Solution "exec")
+                    $RequiresSolutionExecution = [bool] [int] (Get-XMLElement $Solution "exec")
                 }
                 if($opt.contains("p"))
                 {
@@ -685,13 +716,13 @@ function ConvertFrom-LessonMarkup
                 StepID = $StepID;
                 Prompt = $Prompt;
                 RequiresSetVariable = $RequiresSetVariable;
-                VariableToSet = $VariableName;
-                RequiresCodeExecution = $RequiresExecution;
+                VariableToSet = $VariableToSet;
+                RequiresCodeExecution = $RequiresCodeExecution;
                 CodeToExecute = $CodeToExecute;
                 RequiresPause = $RequiresPause;
                 RequiresSolution = $RequiresSolution;
                 SolutionExpression = $SolutionExpression;
-                RequiresSolutionExecution = $SolutionRequiresExecution;
+                RequiresSolutionExecution = $RequiresSolutionExecution;
             }
             $SectionStepDetails += New-Object -TypeName PSObject -Property $stepDetails
         };
@@ -753,7 +784,7 @@ function ConvertTo-ImportSQL
                           @{n="RequiresSetVariable"; e={[bool][int]$_.CodeToExecute.RequiresSetVariable}}, 
                           @{n="RequiresSolutionExecution"; e={[bool][int]$_.Solution.RequiresExecution}},
                           @{n="CodeToExecute"; e={(ConvertTo-CleanText $_.CodeToExecute.Code)}},
-                          @{n="VariableToSet"; e={(ConvertTo-CleanText $_.VariableToSet)}}, 
+                          @{n="VariableToSet"; e={(ConvertTo-CleanText $_.CodeToExecute.Variable)}}, 
                           @{n="SolutionExpression"; e={(ConvertTo-CleanText $_.Solution.Expression)}} | 
             ConvertTo-ImportSQLRow -CourseSid $CourseSid -LessonSid $LessonSid
         $Rows += $SectionNameToRows[$Section.Name] 
