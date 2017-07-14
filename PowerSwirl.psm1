@@ -283,9 +283,7 @@ function Start-PowerSwirlLesson
             Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
             Write-Verbose "Pausing lesson and saving user's progress"
             $SaveLessonParams = @{
-                ServerInstance = $ServerInstance
-            ;   Database = $Database
-            ;   CourseSid = $CourseSid
+                CourseSid = $CourseSid
             ;   LessonSid = $LessonSid
             ;   StepNum = $StepNumCurrent
             ;   UserSid = $UserSid 

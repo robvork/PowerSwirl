@@ -35,4 +35,4 @@ $LessonMarkupPath = ".\database\Data\Lessons\integration_test_step_content.xml"
 
 Get-Content $LessonMarkupPath -Raw | 
 ConvertFrom-LessonMarkup | 
-Import-Lesson -Verbose -OverWriteLesson
+Import-Lesson -OverWriteLesson
