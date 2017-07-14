@@ -19,7 +19,7 @@ Out-File -FilePath C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl\Lesson
 
 #| 
 #ConvertTo-ImportSQL
-
+<#
 $ConnectionParams = @{
     ServerInstance='ASPIRING\SQL16';
     Database='PowerSwirl';
@@ -29,4 +29,10 @@ $lessonFile = 'C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl\Lessons\in
 Get-Content -Path $lessonFile -Raw | 
 ConvertFrom-LessonMarkup | 
 Import-Lesson @ConnectionParams -OverWriteLesson -CreateNewCourse -Verbose
+#>
 
+$LessonMarkupPath = ".\database\Data\Lessons\integration_test_step_content.xml"
+
+Get-Content $LessonMarkupPath -Raw | 
+ConvertFrom-LessonMarkup <#| 
+Import-Lesson -Verbose -CreateNewCourse#>

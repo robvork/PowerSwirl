@@ -61,8 +61,8 @@ function Import-Lesson
         # this is intended to prevent accidentally creating a new course for example if the course name has typos
         if($CreateNewCourse)
         {
-            $CourseSid = Register-Course -CourseName $CourseName @ConnectionParams
-            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName @ConnectionParams
+            $CourseSid = Register-Course -CourseName $CourseName 
+            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
         }
         # if CreateNewCourse is not specified, do not proceed
         else
@@ -458,7 +458,7 @@ function New-ImportLessonStep
         $CodeExecutionBlocks = [String[]] @()
         if($RequiresCodeExecution)
         {
-            $CodeToExecuteBlock = New-ImportLessonBlock -Name "CodeToExecute" -Contents $CodeToExecute       
+            $CodeBlock = New-ImportLessonBlock -Name "Code" -Contents $CodeToExecute       
             $RequiresSetVariableBlock = New-ImportLessonBlock -Name "RequiresSetVariable" -Contents ([int] $RequiresSetVariable.IsPresent)
        
             $VariableToSetBlock = [String[]]@()
@@ -467,7 +467,7 @@ function New-ImportLessonStep
                 $VariableToSetBlock = New-ImportLessonBlock -Name "Variable" -Contents $VariableToSet
             }
 
-            $CodeExecutionBlocks = $CodeToExecuteBlock + $RequiresSetVariableBlock + $VariableToSetBlock
+            $CodeExecutionBlocks = New-ImportLessonBlock -Name "CodeToExecute" -Contents ($CodeBlock + $RequiresSetVariableBlock + $VariableToSetBlock)
         }
 
         Write-Verbose "Constructing solution block"
@@ -622,7 +622,7 @@ function ConvertFrom-LessonMarkup
     $LessonName = Get-XMLElement $Header "L"
 
     Write-Verbose "Getting sections of body" 
-    $Sections = Get-XMLElement $Body "S"
+    $Sections = [Object[]] (Get-XMLElement $Body "S")
 
     Write-Verbose "Mapping a unique identity to each section name" 
     $SectionIDToName =  @{}
@@ -659,7 +659,7 @@ function ConvertFrom-LessonMarkup
             if("opt" -in ($Step | Get-Member -MemberType Property | Select-Object -ExpandProperty Name))
             {
                 $opt = Get-XMLElement $Step "opt"
-                if($opt.contains("e"))
+                if($opt.contains("c"))
                 {
                     $RequiresExecution = $true 
                     $CodeToExecute = Get-XMLElement $Step "code"
@@ -685,7 +685,7 @@ function ConvertFrom-LessonMarkup
                 StepID = $StepID;
                 Prompt = $Prompt;
                 RequiresSetVariable = $RequiresSetVariable;
-                VariableToSet = $Variable;
+                VariableToSet = $VariableName;
                 RequiresCodeExecution = $RequiresExecution;
                 CodeToExecute = $CodeToExecute;
                 RequiresPause = $RequiresPause;
@@ -750,9 +750,9 @@ function ConvertTo-ImportSQL
                           @{n="RequiresPause"; e={[bool][int]$_.RequiresPauseLesson}},
                           @{n="RequiresSolution"; e = {[bool][int]$_.RequiresSolution}}, 
                           @{n="RequiresCodeExecution"; e ={[bool][int]$_.RequiresCodeExecution}},
-                          @{n="RequiresSetVariable"; e={[bool][int]$_.RequiresSetVariable}}, 
+                          @{n="RequiresSetVariable"; e={[bool][int]$_.CodeToExecute.RequiresSetVariable}}, 
                           @{n="RequiresSolutionExecution"; e={[bool][int]$_.Solution.RequiresExecution}},
-                          @{n="CodeToExecute"; e={(ConvertTo-CleanText $_.CodeToExecute)}},
+                          @{n="CodeToExecute"; e={(ConvertTo-CleanText $_.CodeToExecute.Code)}},
                           @{n="VariableToSet"; e={(ConvertTo-CleanText $_.VariableToSet)}}, 
                           @{n="SolutionExpression"; e={(ConvertTo-CleanText $_.Solution.Expression)}} | 
             ConvertTo-ImportSQLRow -CourseSid $CourseSid -LessonSid $LessonSid

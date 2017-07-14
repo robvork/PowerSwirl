@@ -34,13 +34,37 @@
 			</soln>
 		</T>
 		<T>
-			<P> Pause NO, Solution YES='2', Solution Execution YES, Variable NO, Code Execution NO
+			<P> Pause NO, Solution YES=2, Solution Execution YES, Variable NO, Code Execution NO
 			</P>
-			<opt> ps </opt>
+			<opt> s </opt>
 			<soln> 
 				<expr> (208-206) </expr> 
 				<exec> 1 </exec>
 			</soln>
+		</T>
+		<T>
+			<P> 
+				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v=282), Code Execution YES=282
+			</P>
+			<opt> cv </opt>
+			<code> 282 </code>
+			<var> v </var>
+		</T>
+		<T>
+			<P> 
+				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v2=195), Code Execution YES=(194 + 1)
+			</P>
+			<opt> cv </opt>
+			<code> (194 + 1) </code>
+			<var> v </var>
+		</T>
+		<T>
+			<P> 
+				Pause NO, Solution NO, Solution Execution NO, Variable NO, Code Execution YES = '$v3 = (200 + 5)'
+			</P>
+			<opt> c </opt>
+			<code> $v3 = (200 + 5) </code>
+			<var> v </var>
 		</T>
 	</S>
 </B>
