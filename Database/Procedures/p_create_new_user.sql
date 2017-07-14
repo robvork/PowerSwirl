@@ -50,7 +50,7 @@ BEGIN
 		,	user_id 
 		)
 		SELECT 
-			(SELECT MAX(user_sid) + 1 FROM dbo.user_hdr)
+			(SELECT ISNULL(MAX(user_sid), 0) + 1 FROM dbo.user_hdr)
 		,	@as_user_id
 		;
 

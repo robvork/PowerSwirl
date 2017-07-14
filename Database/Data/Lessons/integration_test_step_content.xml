@@ -1,0 +1,47 @@
+<Lesson>
+<H>
+	<C> integration_tests </C>
+	<L> step_content </L>
+</H>
+<B>
+	<S> 
+		<N> main </N>
+		<T> 
+			<P> Pause NO, Solution NO, Solution Execution NO, Variable NO, Code Execution NO 
+			</P>
+		</T>
+		<T>
+			<P> Pause YES, Solution NO, Solution Execution NO, Variable NO, Code Execution NO
+			</P>
+			<opt> p </opt>
+		</T>
+		<T>
+			<P> Pause NO, Solution YES='a', Solution Execution NO, Variable NO, Code Execution NO
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> a </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T>
+			<P> Pause YES, Solution YES='b', Solution Execution NO, Variable NO, Code Execution NO
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> b </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T>
+			<P> Pause NO, Solution YES='2', Solution Execution YES, Variable NO, Code Execution NO
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> (208-206) </expr> 
+				<exec> 1 </exec>
+			</soln>
+		</T>
+	</S>
+</B>
+</Lesson>

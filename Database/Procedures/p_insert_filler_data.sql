@@ -226,7 +226,7 @@ BEGIN
 	INSERT INTO #course_hdr(course_sid, course_id)
 	SELECT	n
 	,		CONCAT(N'C', n)
-	FROM dbo.GetNums
+	FROM dbo.fn_get_nums
 	(
 	   1
 	,  (
@@ -322,7 +322,7 @@ BEGIN
 		   AND 
 		   S.sample_type_sid = @li_sample_type_sid_lesson_count_by_course
 	CROSS APPLY 
-		dbo.GetNums(1, S.sample_val)
+		dbo.fn_get_nums(1, S.sample_val)
 	;
 
 	IF @ai_debug_level > 1
@@ -430,9 +430,11 @@ BEGIN
 	,	lesson_sid 
 	,	step_num 
 	,	step_prompt
-	,	requires_input_flag
-	,	execute_code_flag
-	,	store_var_flag 
+	,	requires_solution
+	,	requires_solution_execution
+	,	requires_code_execution
+	,	requires_set_variable
+	,	requires_pause
 	)
 	SELECT 
 		LH.course_sid 
@@ -450,6 +452,8 @@ BEGIN
 	,	0
 	,	0
 	,	0
+	,	0
+	,	0
 	FROM #lesson_hdr AS LH
 		INNER JOIN #course_lesson_to_sample AS CL2S
 			ON LH.course_sid = CL2S.course_sid
@@ -459,7 +463,7 @@ BEGIN
 			ON CL2S.sample_sid = S.sample_sid
 			   AND 
 			   S.sample_type_sid = @li_sample_type_sid_step_count_by_lesson
-		CROSS APPLY dbo.GetNums(1, S.sample_val)
+		CROSS APPLY dbo.fn_get_nums(1, S.sample_val)
 	;
 
 	IF @ai_debug_level > 1
@@ -515,7 +519,7 @@ BEGIN
 	SELECT 
 		n
 	,	CONCAT(N'user', n)
-	FROM dbo.GetNums
+	FROM dbo.fn_get_nums
 	(
 		1
 	,	(
@@ -912,16 +916,3 @@ BEGIN
 
 END;	
 GO
-
-EXEC dbo.p_insert_filler_data 
-	@ai_debug_level = 2
-,	@ai_min_courses = 3
-,	@ai_min_lessons_per_course = 2
-,	@ai_max_lessons_per_course = 5
-,	@ai_min_steps_per_lesson = 5
-,	@ai_max_steps_per_lesson = 25
-,	@ai_max_courses = 8
-,	@ai_min_users = 3
-,	@ai_max_users = 10
-; 
-

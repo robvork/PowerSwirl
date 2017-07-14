@@ -82,6 +82,26 @@ function Test-PSwirlUser
 
 }
 
+function Register-PSwirlUser
+{
+    [CmdletBinding()]
+    param
+    (
+        [string] $UserName
+    )
+
+    $PowerSwirlConnection = Get-PowerSwirlConnection
+    $ServerInstance = $PowerSwirlConnection.ServerInstance 
+    $Database = $PowerSwirlConnection.Database 
+
+    $Query = "EXECUTE dbo.p_create_new_user 
+                      @as_user_id = '$UserName'
+              ; 
+             "
+
+    Invoke-Sqlcmd2 -ServerInstance $ServerInstance -Database $Database -Query $Query
+}
+
 function Initialize-PSwirlStream
 {
     $InformationAction = "Continue"

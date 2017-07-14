@@ -111,9 +111,15 @@ function Start-PowerSwirl
         }
         catch
         {
-            Write-Verbose "`t* User invalid. Getting new value"
-            Write-RetryPrompt -Message $_.Exception.Message -InformationAction $InformationAction
-            $User = Read-PSwirlUser
+            Write-Verbose "`t* User invalid."
+            $CreateNewUser = Read-MultipleChoiceInput -Prompt "User '$User' was not found. Would you like to create a new user with this id? (y/n)" -PossibleAnswers "y","n"
+            if($CreateNewUser -eq "y")
+            {
+                Register-PSwirlUser -UserName $User
+            }
+            else {
+                $User = Read-PSwirlUser    
+            }
         }
     } while ($true)
 
@@ -122,11 +128,11 @@ function Start-PowerSwirl
 
     # Determine course
     #region validate or get Course
-    $CourseSelections = Get-CourseSelections -ServerInstance $ServerInstance -Database $Database 
+    $CourseSelections = Get-CourseSelections
     try
     {
         Write-Verbose "`t<* Validating course"
-        $CourseSid = Test-PSwirlCourse -ServerInstance $ServerInstance -Database $Database -CourseID $CourseID
+        $CourseSid = Test-PSwirlCourse -CourseID $CourseID
         Write-Verbose "`t*> Course valid"
     }
     catch
@@ -160,11 +166,11 @@ function Start-PowerSwirl
 
     # Determine lesson
     #region validate or get Lesson
-    $LessonSelections = Get-LessonSelections -ServerInstance $ServerInstance -Database $Database -CourseSID $CourseSid
+    $LessonSelections = Get-LessonSelections -CourseSID $CourseSid
     try
     {
         Write-Verbose "`t<* Validating lesson"
-        $LessonSid = Test-PSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonID $LessonID
+        $LessonSid = Test-PSwirlLesson -CourseSid $CourseSid -LessonID $LessonID
         Write-Verbose "`t*> Lesson valid"
     }
     catch
@@ -201,7 +207,13 @@ function Start-PowerSwirl
     #region starting lesson 
     Write-Verbose "Starting PowerSwirl lesson with CourseSid = $CourseSid, LessonSid = $LessonSid, UserSid = $UserSid"
     
-    Start-PowerSwirlLesson -ServerInstance $ServerInstance -Database $Database -CourseSid $CourseSid -LessonSid $LessonSid -UserSid $UserSid -StepNum 1
+    $LessonParams = @{
+        CourseSid=$CourseSid; 
+        LessonSid=$LessonSid; 
+        UserSid=$UserSid; 
+        StepNum=1;
+    }
+    Start-PowerSwirlLesson @LessonParams
     #endregion
 
 }
@@ -227,10 +239,8 @@ function Start-PowerSwirlLesson
     $Database = $PowerSwirlConnection.Database 
 
     $Params = @{
-       ServerInstance=$ServerInstance
-    ;  Database=$Database 
-    ;  CourseSid=$CourseSid
-    ;  LessonSid=$LessonSid
+       CourseSid=$CourseSid;
+       LessonSid=$LessonSid;
     }
 
     $LessonInfo = Get-LessonInfo @Params
@@ -327,6 +337,10 @@ function Install-PowerSwirl
     [CmdletBinding()]
     param
     (
+        [String] $ServerInstance
+    ,
+        [String] $Database 
+    ,
         [Switch] $Force
     ,
         [String] $DataTypesPath  
@@ -386,9 +400,12 @@ function Install-PowerSwirl
     try 
     {
         Set-StrictMode -Version Latest
+        Set-PowerSwirlConnection -ServerInstance $ServerInstance -Database $Database 
+        <#
         $PowerSwirlConnection = Get-PowerSwirlConnection
         $ServerInstance = $PowerSwirlConnection.ServerInstance 
         $Database = $PowerSwirlConnection.Database 
+        #>
 
         # Is $ServerInstance a reachable SQL Server Instance? 
         Write-Verbose "Testing SQL Server Instance '$ServerInstance'"

@@ -81,6 +81,7 @@ function Write-LessonPrompt
     Write-Information ("`n" + $Prompt)
 }
 
+
 function Read-StepInput
 {
     <#
@@ -94,6 +95,8 @@ function Read-StepInput
     $StepInput = Read-Host "Enter your answer"
     Write-Output $StepInput 
 }
+
+
 
 function Test-StepInput
 {

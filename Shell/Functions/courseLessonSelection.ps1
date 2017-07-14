@@ -176,12 +176,10 @@ function Test-PSwirlLesson
     $ServerInstance = $PowerSwirlConnection.ServerInstance 
     $Database = $PowerSwirlConnection.Database 
     $Params = @{
-        ServerInstance=$ServerInstance; 
-        Database=$Database; 
         CourseSID=$CourseSID;
         LessonID=$LessonID; 
     }
-    $TestResult = Get-Course @Params
+    $TestResult = Get-Lesson @Params
 
     if($TestResult.LessonExists)
     {

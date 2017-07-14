@@ -116,6 +116,18 @@ BEGIN
 				WHERE course_sid = @ai_course_sid
 			); 
 
+			INSERT INTO dbo.course_dtl 
+			(
+				course_sid
+			,	lesson_sid 
+			)
+			VALUES 
+			(
+				@ai_course_sid
+			,	@li_lesson_sid
+			)
+			;
+
 			INSERT INTO dbo.lesson_hdr
 			(
 				course_sid
