@@ -292,6 +292,7 @@ function Start-PowerSwirlLesson
                 ;   UserSid = $UserSid 
                 }
                 Save-Lesson @SaveLessonParams
+                Start-Sleep -Seconds 3
                 return
             }
             else
