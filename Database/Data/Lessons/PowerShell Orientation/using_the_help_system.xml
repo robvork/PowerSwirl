@@ -1,7 +1,8 @@
 <Lesson>
-<H></H>
+<H>
 	<C> PowerShell Orientation </C>
 	<L> Using the Help System </L>
+</H>
 <B>
 	<S> 
 		<N> Main </N>
@@ -213,7 +214,8 @@
 			</P>
 			<opt> s </opt>
 			<soln> 
-				Examples
+				<expr> Examples </expr>
+				<exec> 0 </exec>
 			</soln>
 		</T>
 		<T> 
@@ -221,6 +223,51 @@
 				You've now seen all of the major features of the 'help' command's output. 
 				Before we conclude the lesson, let's consider a closely related command that can
 				be used to search for available commands: the aptly named 'Get-Command' command. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				As we saw previously, commands in PowerShell are almost always of the form Verb-Noun. This consistency in naming makes it easy to find commands that perform actions on the same kinds of objects and commands that perform the same kinds of actions on different kinds of objects.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				For example, consider the output of the command 'Get-Command -Noun Process'. This gives you a list of commands which have their noun = 'Process'. Once you know that 'Process' is a noun that PowerShell commands know how to interact with, you can use Get-Command to figure out all the kinds of actions that it can perform on Processes.
+
+				You can similarly use the command 'Get-Command -Verb Get' to list commands which use the verb 'Get'.
+			</P>
+		</T>
+		<T> 
+			<P>
+				How many commands have the noun Process? You may type a number or a PowerShell expression that represents this number. 
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> gcm -noun process | measure-object | select -exp count</expr>
+				<exec> 1 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				One of the commands that handles processes is Get-Process. It's no coincidence
+				that this command has the same verb as Get-ChildItem. Like Get-ChildItem, 
+				Get-Process fetches some objects and returns them to the caller. The objects are files and directories in the former case and processes in the latter case, but the operation, which involves getting all or some of some object based on some filter (which can be omitted) is analagous. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				One filter that can be used to pick specific processes is the process ID(PID). 
+				Using the help command on Get-Process, what parameter can be used to specify one or more PIDs?
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> ID </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The commands you've learned in this lesson should get you well along your way to learning what's out there in PowerShell, both in core commands and third party modules, which can extend the functionality of PowerShell while adhering to similar help and naming conventions.
 			</P>
 		</T>
 	</S>
