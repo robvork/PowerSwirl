@@ -31,8 +31,9 @@ ConvertFrom-LessonMarkup |
 Import-Lesson @ConnectionParams -OverWriteLesson -CreateNewCourse -Verbose
 #>
 
-$LessonMarkupPath = ".\database\Data\Lessons\integration_test_step_content.xml"
+#$LessonMarkupPath = ".\database\Data\Lessons\integration_test_step_content.xml"
+$LessonMarkupPath = ".\database\Data\Lessons\PowerShell Orientation\using_the_help_system.xml"
 
 Get-Content $LessonMarkupPath -Raw | 
 ConvertFrom-LessonMarkup | 
-Import-Lesson -OverWriteLesson
+Import-Lesson -OverWriteLesson 

@@ -1,0 +1,8 @@
+powerswirl issues
+the whitespace is kind of wonky. is this because of PowerShell or am I storing the extra whitespace?
+lesson pauses should wait for the user to press enter before exiting the shell
+should the resume be changed so that we go to the step after the step that caused the pause?
+ 	this is needed for steps with solutions but steps with just explorations seem not to need
+ 	revisiting. maybe the pause can behave differently depending on whether a solution is required?
+ is there a natural way to break up long periods of text while adhering to the author's original strucutre? maybe something like breaking after a certain number of characters or a period encountered, with support for overrides from authors. the override would tell PowerSwirl "no, don't break me up. I don't care how long this paragraph is.", with no override being implicit permission to break up the step as needed. this could be problematic if input is needed or code must be executed. maybe we only break up steps which require no solution, code execution, pause, variable setting? or we could allow any kind of paragraphs and just do the question at the very last step after we've broken it up. 
+ 

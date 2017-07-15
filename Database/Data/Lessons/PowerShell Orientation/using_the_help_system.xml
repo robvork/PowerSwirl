@@ -8,23 +8,17 @@
 		<N> Main </N>
 		<T> 
 			<P> 
-				PowerShell's help system offers an interactive way to learn
-				about PowerShell commands and language features. 
+				PowerShell's help system offers an interactive way to learn about PowerShell commands and language features. 
 			</P>
 		</T>
 		<T> 
 			<P> 
-				Once you've become familiar with it, you'll probably find it to be
-				the most useful resource for discovering new parts of PowerShell
-				and reminding yourself of the stuff you've forgotten.
+				Once you've become familiar with it, you'll probably find it to be the most useful resource for discovering new parts of PowerShell and reminding yourself of the stuff you've forgotten.
 			</P>
 		</T>
 		<T> 
 			<P> 
-				Before you can start using the help system, you have to 
-				download the help files. Help files are not included with PowerShell
-				because they are subject to change. You can easily get the most up-to-date
-				version of all the help files by using the PowerShell command 'Update-Help'. 
+				Before you can start using the help system, you have to download the help files. Help files are not included with PowerShell because they are subject to change. You can easily get the most up-to-date version of all the help files by using the PowerShell command 'Update-Help'. 
 			</P>
 		</T>
 		<T> 
@@ -37,44 +31,28 @@
 		</T>
 		<T>
 			<P> 
-				For the remainder of this lesson, I'll assume that you've run this command
-				at least once in the past. If this is not the case for you, you can run
-				it at any point in subsequent lesson pauses to set up the help system. 
+				For the remainder of this lesson, I'll assume that you've run this command at least once in the past. If this is not the case for you, you can run it at any point in subsequent lesson pauses to set up the help system. 
 			</P>
 		</T>
 		<T> 
 			<P>
-				The help system in PowerShell can be examined in at least a few ways, including
-				in the command line output, in a separate window, and in a web browser. This 
-				lesson will focus on viewing the help in the command line for reasons we will see later. Feel free to use whichever format you prefer in your day to day PowerShell work.
+				The help system in PowerShell can be examined in at least a few ways, including in the command line output, in a separate window, and in a web browser. This lesson will focus on viewing the help in the command line for reasons we will see later. Feel free to use whichever format you prefer in your day to day PowerShell work.
 			</P>
 		</T>
 		<T> 
 			<P>
-				Let's look at an example of the help output you'd get from looking 
-				up a command on the command line. Type the command 'help Get-ChildItem' to learn
-				about a command that can be used for listing the contents of a directory in the
-				file system. 
+				Let's look at an example of the help output you'd get from looking up a command on the command line. Type the command 'help Get-ChildItem' to learn about a command that can be used for listing the contents of a directory in the file system. 
 			</P>
 			<opt> p </opt>
 		</T>
 		<T>
 			<P> 
-				As you can see, the help command spits out a bunch of text related
-				to the command. Keeping the output you just produced close at hand, let's
-				go through each part and consider its contents. You will see that 
-				all command help files in PowerShell have basically the same format, so once you understand how to read the help for this command, you'll know how to read
-				the help files for every command.
+				As you can see, the help command spits out a bunch of text related to the command. Keeping the output you just produced close at hand, let's go through each part and consider its contents. You will see that all command help files in PowerShell have basically the same format, so once you understand how to read the help for this command, you'll know how to read the help files for every command.
 			</P>
 		</T>
 		<T>
 			<P>
-				You will see a number of capitalized words with no indentation on the left.
-				These are called the sections of the help file. The indented text that follows
-				is the content of that section. The content of the section will always be
-				indented to contrast itself with the section names, so you can easily 
-				examine the sections as you scroll by looking at the whitespace before the
-				text blocks. 
+				You will see a number of capitalized words with no indentation on the left. These are called the sections of the help file. The indented text that follows is the content of that section. The content of the section will always be indented to contrast itself with the section names, so you can easily examine the sections as you scroll by looking at the whitespace before the text blocks. 
 			</P> 
 		</T>
 		<T> 
@@ -89,10 +67,7 @@
 		</T>
 		<T> 
 			<P>
-				The NAME section always contains the name of the command. PowerShell 
-				commands are almost always in the form of Verb-Noun, where Verb describes
-				some action that is performed on the Noun in the command. In our case here,
-				we are GETting the ChildItems of a directory. 
+				The NAME section always contains the name of the command. PowerShell commands are almost always in the form of Verb-Noun, where Verb describes some action that is performed on the Noun in the command. In our case here, we are GETting the ChildItems of a directory. 
 			</P>
 		</T>
 		<T> 
@@ -107,9 +82,7 @@
 		</T>
 		<T> 
 			<P> 
-				The SYNOPSIS section gives a brief description of the command. You can 
-				think of it as a sort of introduction or abstract of the command you're looking up.
-				You can get more details from the sections that follow. 
+				The SYNOPSIS section gives a brief description of the command. You can think of it as a sort of introduction or abstract of the command you're looking up. You can get more details from the sections that follow. 
 			</P>
 		</T>
 		<T> 
@@ -124,17 +97,12 @@
 		</T>
 		<T> 
 			<P> 
-				The SYNTAX section gives an overview of the parameter names and types for the
-				command. You'll notice that the contents of this section are grouped into blocks 
-				containing one instance of the command with parameters following. Each of these
-				blocks is called a parameter set. A parameter set can be understood basically
-				as a distinct use case of the command. In our example, the first parameter set
-				corresponds to using a path name exactly as written without wildcards, whereas
-				the second parameter set corresponds to using a path name possibly with wildcards. 
+				The SYNTAX section gives an overview of the parameter names and types for the command. 
+
+				You'll notice that the contents of this section are grouped into blocks containing one instance of the command with parameters following. Each of these blocks is called a parameter set. A parameter set can be understood basically as a distinct use case of the command. In our example, the first parameter set corresponds to using a path name exactly as written without wildcards, whereas the second parameter set corresponds to using a path name possibly with wildcards. 
 			</P>
 			<P> 
-				There may be significant overlap in parameter sets as is the case in this example,
-				but there are many commands with very different such sets. When this is the case, specifying parameters belonging to one particular parameter set greatly improves the IntelliSense experience while typing the command.
+				There may be significant overlap in parameter sets as is the case in this example, but there are many commands with very different such sets. When this is the case, specifying parameters belonging to one particular parameter set greatly improves the IntelliSense experience while typing the command.
 			</P>
 		</T>
 		<T> 
@@ -149,9 +117,7 @@
 		</T>
 		<T> 
 			<P> 
-				The DESCRIPTION section elaborates on the SYNOPSIS section, providing
-				much more detail and context for how and where the command is used. 
-				This section often provides additional information on parameters and non-typical use cases such as looking for hidden files on the file system in our example. 
+				The DESCRIPTION section elaborates on the SYNOPSIS section, providing much more detail and context for how and where the command is used. This section often provides additional information on parameters and non-typical use cases such as looking for hidden files on the file system in our example. 
 			</P>
 		</T>
 		<T> 
@@ -173,28 +139,23 @@
 		</T>
 		<T> 
 			<P> 
-				The process of searching help files in PowerShell is often an iterative process that 
-				begins with a command like 'help Get-ChildItem' that we saw earlier, and evolves into searches on related commands and more fine-tuned searches. 
+				The process of searching help files in PowerShell is often an iterative process that begins with a command like 'help Get-ChildItem' that we saw earlier, and evolves into searches on related commands and more fine-tuned searches. 
 			</P>
 		</T>
 		<T> 
 			<P> 
-				So far we've seen the help command being used in its simplest form, with just
-				a name as input. In many cases, we may want more information than this
-				default behavior provides. 
+				So far we've seen the help command being used in its simplest form, with just a name as input. In many cases, we may want more information than this default behavior provides. 
 			</P>
 		</T>
 		<T> 
 			<P> 
-				Examine the descriptions of the help command's parameters by typing the command 
-				'help -Name help -Parameter *'. The '*' in the command is a wildcard that can match any pattern. This ensures all parameters are selected and returned to you.
+				Examine the descriptions of the help command's parameters by typing the command 'help -Name help -Parameter *'. The '*' in the command is a wildcard that can match any pattern. This ensures all parameters are selected and returned to you.
 			</P>
 			<opt> p </opt>
 		</T>
 		<T> 
 			<P> 
-				What parameter can you use to add parameter descriptions and command execution
-				examples to the help you saw before, but not parameter attribute, input and output object types, and additional notes (hint: It's not Full, although that parameter does include parameter descriptions and examples)
+				What parameter can you use to add parameter descriptions and command execution examples to the help you saw before, but not parameter attribute, input and output object types, and additional notes (hint: It's not Full, although that parameter does include parameter descriptions and examples)
 			</P>
 			<opt> s </opt>
 			<soln> 
@@ -204,8 +165,7 @@
 		</T>
 		<T> 
 			<P> 
-				Using the -Detailed parameter or the even more informative -Full parameter can give you much more insight into the mechanics and purpose of a command, as well as 
-				some example executions of the command. 
+				Using the -Detailed parameter or the even more informative -Full parameter can give you much more insight into the mechanics and purpose of a command, as well as some example executions of the command. 
 			</P>
 		</T>
 		<T> 
@@ -220,9 +180,7 @@
 		</T>
 		<T> 
 			<P> 
-				You've now seen all of the major features of the 'help' command's output. 
-				Before we conclude the lesson, let's consider a closely related command that can
-				be used to search for available commands: the aptly named 'Get-Command' command. 
+				You've now seen all of the major features of the 'help' command's output. Before we conclude the lesson, let's consider a closely related command that can be used to search for available commands: the aptly named 'Get-Command' command. 
 			</P>
 		</T>
 		<T> 
@@ -249,14 +207,13 @@
 		</T>
 		<T> 
 			<P> 
-				One of the commands that handles processes is Get-Process. It's no coincidence
-				that this command has the same verb as Get-ChildItem. Like Get-ChildItem, 
-				Get-Process fetches some objects and returns them to the caller. The objects are files and directories in the former case and processes in the latter case, but the operation, which involves getting all or some of some object based on some filter (which can be omitted) is analagous. 
+				One of the commands that handles processes is Get-Process. It's no coincidence that this command has the same verb as Get-ChildItem. Like Get-ChildItem, Get-Process fetches some objects and returns them to the caller. The objects are files and directories in the former case and processes in the latter case, but the operation, which involves getting all or some of some object based on some filter (which can be omitted) is analagous. 
 			</P>
 		</T>
 		<T> 
 			<P> 
 				One filter that can be used to pick specific processes is the process ID(PID). 
+
 				Using the help command on Get-Process, what parameter can be used to specify one or more PIDs?
 			</P>
 			<opt> ps </opt>
