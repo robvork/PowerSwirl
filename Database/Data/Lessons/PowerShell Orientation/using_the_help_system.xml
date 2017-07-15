@@ -4,7 +4,7 @@
 	<L> Using the Help System </L>
 <B>
 	<S> 
-		<N> main</N>
+		<N> Main </N>
 		<T> 
 			<P> 
 				PowerShell's help system offers an interactive way to learn
@@ -134,6 +134,93 @@
 			<P> 
 				There may be significant overlap in parameter sets as is the case in this example,
 				but there are many commands with very different such sets. When this is the case, specifying parameters belonging to one particular parameter set greatly improves the IntelliSense experience while typing the command.
+			</P>
+		</T>
+		<T> 
+			<P>
+				What is the fourth section listed in the help output?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> DESCRIPTION </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The DESCRIPTION section elaborates on the SYNOPSIS section, providing
+				much more detail and context for how and where the command is used. 
+				This section often provides additional information on parameters and non-typical use cases such as looking for hidden files on the file system in our example. 
+			</P>
+		</T>
+		<T> 
+			<P>
+				What is the fifth section listed in the help output?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> RELATED LINKS </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The RELATED LINKS section gives links to online versions of the documentation and a list of related commands. The commands listed here are PowerShell commands which are often used with the command whose help you are examining. In our example, this section lists the Get-Content and Test-Path commands among others. Test-Path can be used to test whether a path you're using in Get-ChildItem is valid. Get-Content can be used to get the contents of a file once you've found it using Get-ChildItem. 
+
+				Notice that all the commands listed here fulfill the Verb-Noun convention mentioned earlier. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				The process of searching help files in PowerShell is often an iterative process that 
+				begins with a command like 'help Get-ChildItem' that we saw earlier, and evolves into searches on related commands and more fine-tuned searches. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				So far we've seen the help command being used in its simplest form, with just
+				a name as input. In many cases, we may want more information than this
+				default behavior provides. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Examine the descriptions of the help command's parameters by typing the command 
+				'help -Name help -Parameter *'. The '*' in the command is a wildcard that can match any pattern. This ensures all parameters are selected and returned to you.
+			</P>
+			<opt> p </opt>
+		</T>
+		<T> 
+			<P> 
+				What parameter can you use to add parameter descriptions and command execution
+				examples to the help you saw before, but not parameter attribute, input and output object types, and additional notes (hint: It's not Full, although that parameter does include parameter descriptions and examples)
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> Detailed </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				Using the -Detailed parameter or the even more informative -Full parameter can give you much more insight into the mechanics and purpose of a command, as well as 
+				some example executions of the command. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Examining again the contents of the output from the command 'help -Name help -Parameter *', what parameter can you use to list just the examples of a command?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				Examples
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				You've now seen all of the major features of the 'help' command's output. 
+				Before we conclude the lesson, let's consider a closely related command that can
+				be used to search for available commands: the aptly named 'Get-Command' command. 
 			</P>
 		</T>
 	</S>
