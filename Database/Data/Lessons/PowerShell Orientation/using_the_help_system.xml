@@ -1,0 +1,141 @@
+<Lesson>
+<H></H>
+	<C> PowerShell Orientation </C>
+	<L> Using the Help System </L>
+<B>
+	<S> 
+		<N> main</N>
+		<T> 
+			<P> 
+				PowerShell's help system offers an interactive way to learn
+				about PowerShell commands and language features. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Once you've become familiar with it, you'll probably find it to be
+				the most useful resource for discovering new parts of PowerShell
+				and reminding yourself of the stuff you've forgotten.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Before you can start using the help system, you have to 
+				download the help files. Help files are not included with PowerShell
+				because they are subject to change. You can easily get the most up-to-date
+				version of all the help files by using the PowerShell command 'Update-Help'. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Try updating the help files now by typing 'Get-Help' at the PowerShell command line. You must be running PowerShell in Administrator mode and you have to be connected to the internet for this to work. 
+
+				This may take a minute, so be patient. 
+			</P>
+			<opt> p </opt>
+		</T>
+		<T>
+			<P> 
+				For the remainder of this lesson, I'll assume that you've run this command
+				at least once in the past. If this is not the case for you, you can run
+				it at any point in subsequent lesson pauses to set up the help system. 
+			</P>
+		</T>
+		<T> 
+			<P>
+				The help system in PowerShell can be examined in at least a few ways, including
+				in the command line output, in a separate window, and in a web browser. This 
+				lesson will focus on viewing the help in the command line for reasons we will see later. Feel free to use whichever format you prefer in your day to day PowerShell work.
+			</P>
+		</T>
+		<T> 
+			<P>
+				Let's look at an example of the help output you'd get from looking 
+				up a command on the command line. Type the command 'help Get-ChildItem' to learn
+				about a command that can be used for listing the contents of a directory in the
+				file system. 
+			</P>
+			<opt> p </opt>
+		</T>
+		<T>
+			<P> 
+				As you can see, the help command spits out a bunch of text related
+				to the command. Keeping the output you just produced close at hand, let's
+				go through each part and consider its contents. You will see that 
+				all command help files in PowerShell have basically the same format, so once you understand how to read the help for this command, you'll know how to read
+				the help files for every command.
+			</P>
+		</T>
+		<T>
+			<P>
+				You will see a number of capitalized words with no indentation on the left.
+				These are called the sections of the help file. The indented text that follows
+				is the content of that section. The content of the section will always be
+				indented to contrast itself with the section names, so you can easily 
+				examine the sections as you scroll by looking at the whitespace before the
+				text blocks. 
+			</P> 
+		</T>
+		<T> 
+			<P> 
+				What is the first section listed in the help output?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> NAME </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P>
+				The NAME section always contains the name of the command. PowerShell 
+				commands are almost always in the form of Verb-Noun, where Verb describes
+				some action that is performed on the Noun in the command. In our case here,
+				we are GETting the ChildItems of a directory. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				What is the second section listed in the help output?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> SYNOPSIS </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The SYNOPSIS section gives a brief description of the command. You can 
+				think of it as a sort of introduction or abstract of the command you're looking up.
+				You can get more details from the sections that follow. 
+			</P>
+		</T>
+		<T> 
+			<P>
+				What is the third section listed in the help output?
+			</P>
+			<opt> s </opt>
+			<soln> 
+				<expr> SYNTAX </expr>
+				<exec> 0 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The SYNTAX section gives an overview of the parameter names and types for the
+				command. You'll notice that the contents of this section are grouped into blocks 
+				containing one instance of the command with parameters following. Each of these
+				blocks is called a parameter set. A parameter set can be understood basically
+				as a distinct use case of the command. In our example, the first parameter set
+				corresponds to using a path name exactly as written without wildcards, whereas
+				the second parameter set corresponds to using a path name possibly with wildcards. 
+			</P>
+			<P> 
+				There may be significant overlap in parameter sets as is the case in this example,
+				but there are many commands with very different such sets. When this is the case, specifying parameters belonging to one particular parameter set greatly improves the IntelliSense experience while typing the command.
+			</P>
+		</T>
+	</S>
+</B>
+</Lesson>

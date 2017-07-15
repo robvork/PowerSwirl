@@ -722,7 +722,7 @@ function ConvertFrom-LessonMarkup
                 RequiresPause = $RequiresPause;
                 RequiresSolution = $RequiresSolution;
                 SolutionExpression = $SolutionExpression;
-                RequiresSolutionExecution = $RequiresSolutionExecution;
+                RequiresExecuteSolution = $RequiresSolutionExecution;
             }
             $SectionStepDetails += New-Object -TypeName PSObject -Property $stepDetails
         };

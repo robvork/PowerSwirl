@@ -252,6 +252,7 @@ function Start-PowerSwirlLesson
     Write-Verbose "Step count: $StepCount"
 
     $LessonContent = Get-LessonContent @Params
+    $PauseEnabled = (-not $DisableForcePause)
     Write-Verbose "Beginning lesson"
 
     for($StepIdx = ($StepNumStart - 1); $StepIdx -lt $StepCount; $StepIdx++)
@@ -259,7 +260,7 @@ function Start-PowerSwirlLesson
         $CurrentStep = $LessonContent[$StepIdx]
         $StepNumCurrent = $CurrentStep.stepNum
         $StepPrompt = $CurrentStep.stepPrompt
-        $StepRequiresPause = $CurrentStep.requiresPause
+        $StepRequiresPause = [bool] $CurrentStep.requiresPause
         $StepRequiresSolution = [bool] $CurrentStep.requiresSolution
         $StepRequiresCodeExecution = [bool] $CurrentStep.requiresCodeExecution
         $StepRequiresSetVariable = [bool] $CurrentStep.requiresSetVariable
@@ -278,18 +279,25 @@ function Start-PowerSwirlLesson
             }
         }
 
-        if($StepRequiresPause -and (-not $DisableForcePause))
+        if($StepRequiresPause)
         {
-            Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
-            Write-Verbose "Pausing lesson and saving user's progress"
-            $SaveLessonParams = @{
-                CourseSid = $CourseSid
-            ;   LessonSid = $LessonSid
-            ;   StepNum = $StepNumCurrent
-            ;   UserSid = $UserSid 
+            if($PauseEnabled)
+            {
+                Write-LessonPrompt -Prompt "Pausing lesson. Explore on your own, then type 'nxt' to continue with the lesson"
+                Write-Verbose "Pausing lesson and saving user's progress"
+                $SaveLessonParams = @{
+                    CourseSid = $CourseSid
+                ;   LessonSid = $LessonSid
+                ;   StepNum = ($StepNumCurrent + 1)
+                ;   UserSid = $UserSid 
+                }
+                Save-Lesson @SaveLessonParams
+                return
             }
-            Save-Lesson @SaveLessonParams
-            return
+            else
+            {
+                $PauseEnabled = $true  
+            }
         }
 
         if($StepRequiresSolution)

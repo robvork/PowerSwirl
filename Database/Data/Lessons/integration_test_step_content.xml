@@ -44,9 +44,9 @@
 		</T>
 		<T>
 			<P> 
-				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v=282), Code Execution YES=282
+				Pause YES, Solution NO, Solution Execution NO, Variable YES=($v=282), Code Execution YES=282
 			</P>
-			<opt> c </opt>
+			<opt> pc </opt>
 			<code> 
 				<block> 282 </block>
 				<var> v </var>
@@ -55,9 +55,9 @@
 		</T>
 		<T>
 			<P> 
-				Pause NO, Solution NO, Solution Execution NO, Variable YES=($v2=195), Code Execution YES=(194 + 1)
+				Pause YES, Solution NO, Solution Execution NO, Variable YES=($v2=195), Code Execution YES=(194 + 1)
 			</P>
-			<opt> c </opt>
+			<opt> pc </opt>
 			<code> 
 				<block> (194 + 1) </block>
 				<var> v2 </var>
@@ -65,11 +65,11 @@
 		</T>
 		<T>
 			<P> 
-				Pause NO, Solution NO, Solution Execution NO, Variable NO, Code Execution YES = '$v3 = (200 + 5)'
+				Pause YES, Solution NO, Solution Execution NO, Variable NO, Code Execution YES = '$v3 = (200 + 5)'
 			</P>
-			<opt> c </opt>
+			<opt> pc </opt>
 			<code> 
-				<block> $v3 = (200 + 5) </block>
+				<block> Set-Variable v3 (200 + 5) -Scope Global</block>
 			</code>
 			<var> v </var>
 		</T>
