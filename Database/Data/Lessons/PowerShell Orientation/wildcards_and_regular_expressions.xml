@@ -105,6 +105,18 @@
 			</P>
 			<opt> p </opt>
 		</T>
+		<T>
+			<P> 
+				While '*' and its cousins '?' and '[]' are usually enough for matching type extensions and substrings, there are many patterns that are difficult to capture succinctly with these tools. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Take for example the problem of looking for text files which end in a number that can be anywhere between 1 and 100, where the numbers are not padded with 0's as in file001.txt. Using just the tools we've considered before, you might try to capture this with 3 patterns, one for digits 1-9, one for digits 10-99, and one for digits 100. The patterns would be *[1-9].txt, *[1-9][0-9].txt, and *100.txt, respectively.
+				This is both verbose and incorrect. It's verbose because it requires 3 patterns instead of 1, even though the pattern can be described informally without reference to 3 patterns. It is incorrect because the * picks up any additional numbers to the left of the numbers at the end, so files like 'file15159100.txt' would match the pattern. We can remedy this problem by specifying all the non-digit characters that can occur before the last digit characters, but this would be difficult and even more verbose. 
+			</P>
+		</T>
+		
 	</S>
 </B>
 </Lesson>
