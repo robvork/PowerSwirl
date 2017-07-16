@@ -116,7 +116,61 @@
 				This is both verbose and incorrect. It's verbose because it requires 3 patterns instead of 1, even though the pattern can be described informally without reference to 3 patterns. It is incorrect because the * picks up any additional numbers to the left of the numbers at the end, so files like 'file15159100.txt' would match the pattern. We can remedy this problem by specifying all the non-digit characters that can occur before the last digit characters, but this would be difficult and even more verbose. 
 			</P>
 		</T>
-		
+		<T> 
+			<P> 
+				To address the verbosity and incorrectness of our approach so far, we should ideally be able to express patterns that have what we'll call alternation, negation, and abbreviated character sets. Let's consider the meaning of each of these. 
+			</P>
+		</T>
+		<T>
+			<P> 
+				Alternation is the ability to express a list of patterns and say that the string matches the pattern if it matches at least one pattern, but possibly more. 
+				Having alternation means that we don't have to have 3 separate patterns for matching 
+				the 3 cases mentioned above. Instead we could have one pattern that matches the numbers 1 though 100 through alternation and we could embed this pattern within the 
+				larger pattern. 
+			</P>
+		</T>		
+		<T> 
+			<P> 
+				Negation is the ability to express that a pattern or subpattern does NOT match some pattern that we specify. In our example, we see a simple case where we'd want to be able to use negation: we want any characters before the number portion of the filename to be not decimal digits. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Finally, abbreviated character sets would allow us to specify common character choices like [0-9] and [a-z] with fewer characters. Ideally each of these common sets could be abbreviated with 1 or 2 characters that can be reused anywhere in the pattern. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Alternation, negation, and abbreviated character sets, along with a wide variety of other features, are available in a widely used language called regular expressions, or regex for short. There are different versions of regex for different platforms, but they're more or less the same. Since this is a course on PowerShell, a .NET based language, we will consider .NET regular expressions and how they can be used to solve problems in PowerShell.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Let's reconsider each of the 3 language features we have just introduced and how their realization in regex can help us solve our file query problem.  
+			</P>
+		</T>
+		<T> 
+			<P> 
+				As we alluded to before, alternation can be used to express the different cases for numbers 1-100. In regex, the '|' symbol is the symbol used to denote alternation.
+				Using the character sets [1-9] and [0-9] to denote the decimal digits 1-9 and the decimal digits 0-9 respectively, and using () to group each case into its own pattern, we obtain the following regex for the number portion: "(100)|([1-9][0-9])|([1-9])". Later we'll see how we can combine this with the other parts of the pattern so that we need only 1 pattern to match all 3 cases. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Our inability to use negation led us to the problem of passing filenames like "data91584.txt". Using our non-regex approach, the * wildcard matches the "data915" portion of the filename and the explicitly listed patterns match the rest of the string. But we only wanted filenames with numbers between 1 and 100. 
+				In regex, the negation symbol is '^'. So the character set which includes all characters which are NOT digits is [^0-9]. Combining this with the regex we have so far, we obtain "[^0-9](100)|([1-9][0-9])|([1-9])". This pattern matches strings which have a non-digit character, followed by a string of digits that represent numbers 1 through 100. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Finally, we can use abbreviated character sets in regex to simplify what we have so far. The character sets [0-9] is so common that it has its own special symbol, \d, where the 'd' stands for digit. Further, the character set containing characters not in \d is denoted by \D. Using these facts, we can change our regex to "\D((100)|([1-9]\d)|([1-9])". 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Now that we have a compact regex pattern for the tricky number pattern we've been dealing with, we can complete our regular expression with the type extension and the part of the filename that precedes the numbers (if it exists). 
+			</P>
+		</T>
 	</S>
 </B>
 </Lesson>
