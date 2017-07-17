@@ -1,111 +1,4 @@
-<Lesson>
-<H> 
-	<C> PowerShell Orientation </C>
-	<L> Pattern Matching and Replacement </L>
-</H>
-<B>
-	<S> 
-		<N> </N>
-
-		// minimal
-		<T> 
-			<P> 
-			</P>
-		</T>
-
-		// fully fleshed out
-		<T> 
-			<P> 
-			</P>
-			<opt> </opt>
-			<soln> 
-				<expr> </expr>
-				<exec> </exec>
-			</soln>
-			<code> 
-				<block> </block>
-				<var> </var>
-			</code>
-		</T>
-	</S>
-	<S> 
-		<N> Main </N>
-		<T> 
-			<P> 
-				Two common tasks you'll encounter everywhere in PowerShell, from core built-in commands to third-party management modules, are pattern matching and replacement. 
-			</P>
-		</T>
-		<T> 
-			<P> 
-				Pattern matching is the act of searching a body of text or objects with text data for some pattern, and doing something depending on whether the text being searched matches the pattern. Replacement is pattern matching that involves actually changing the text that matches your pattern. 
-			</P>
-		</T>
-		<T> 
-			<P>
-				As an example, suppose you want to list the files in a directory that have file extension .txt. Since you don't know ahead of time what the names of the files are, you have to create a pattern which will match those files that have file extension .txt and not match those files that have other extensions. 
-			</P>
-		</T>
-		<T> 
-			<P> 
-				We can use Get-ChildItem as our search directory command with the pattern '*.txt' to get the files we need. The '*' within the pattern is a wildcard, which as its name suggests, can take the form of any file name. The entire pattern can be read as meaning any string, followed by a period, followed by the string 'txt'. It's easy to see that all .txt files and only .txt files will match this pattern. 
-
-				The command 'Get-ChildItem *.txt' can be used to accomplish our original task. 
-			</P>
-		</T>
-		<T> 
-			<P> 
-				I've created a number of empty files with different extensions in the PSwirlDrive:\ directory for you to play with. 
-
-				Type 'Get-ChildItem' or the shorthand 'gci' to see the files that are there.
-			</P>
-			<opt> pc </opt>
-			<code> 
-				<block> New-PSwirlDrive; 
-						Set-Location ((Get-PSwirlDriveName) + ":\");
-						(1..3) | % {ni "script$_.sql"} | out-null
-						(1..4) | % {ni "text$_.txt"} | out-null
-						(1..2) | % {ni "data$_.csv"} | out-null
-				</block>
-			</code>
-		</T>
-		<T> 
-			<P> 
-				Using a pattern similar to the one we used to find the .txt files before, use
-				Get-ChildItem to list all the files which have the type extension ".sql"
-			</P>
-			<opt> ps </opt>
-			<soln> 
-				<expr> gci *.sql </expr>
-				<exec> 1 </exec>
-			</soln>
-		</T>
-		<T> 
-			<P> 
-				The '*' wildcard can be placed anywhere in the pattern string any number of times, or omitted altogther. When the '*' is not used, the pattern must be exact (while still being case insensitive by default)
-			</P>
-		</T>
-		<T> 
-			<P> 
-				For example, if you want to search for only for a file named 'error_log.txt', you could use the command 'Get-ChildItem error_log.txt'. On the other hand, if you wanted to find all .txt files which had the string 'log' in the name, you could use the command 'Get-ChildItem *log*.txt''.
-			</P>
-		</T>
-		<T> 
-			<P> 
-				Type a command you could use to find all files in the directory from before with at least one '2' character in the name. The files in the list can be of any type extension.
-			</P>
-			<opt> ps </opt>
-			<soln> 
-				<expr> gci *2* </expr>
-				<exec> 1 </exec>
-			</soln>
-		</T>
-		<T>
-			<P> 
-				The * wildcard is probably the most common wildcard to use in day-to-day PowerShell work, but there are others available. For more information, type the command 'help about_wildcards'. 
-			</P>
-			<opt> p </opt>
-		</T>
-		<T>
+<T>
 			<P> 
 				While '*' and its cousins '?' and '[]' are usually enough for matching type extensions and substrings, there are many patterns that are difficult to capture succinctly with these tools. 
 			</P>
@@ -163,7 +56,7 @@
 		</T>
 		<T> 
 			<P> 
-				Finally, we can use abbreviated character sets in regex to simplify what we have so far. The character sets [0-9] is so common that it has its own special symbol, \d, where the 'd' stands for digit. Further, the character set containing characters not in \d is denoted by \D. Using these facts, we can change our regex to "\D((100)|([1-9]\d)|([1-9])". 
+				Finally, we can use abbreviated character sets in regex to simplify what we have so far. The character set [0-9] is so common that it has its own special symbol, \d, where the 'd' stands for digit. Further, the character set containing characters not in \d is denoted by \D. Using these facts, we can change our regex to "\D((100)|([1-9]\d)|([1-9])". 
 			</P>
 		</T>
 		<T> 
@@ -171,6 +64,3 @@
 				Now that we have a compact regex pattern for the tricky number pattern we've been dealing with, we can complete our regular expression with the type extension and the part of the filename that precedes the numbers (if it exists). 
 			</P>
 		</T>
-	</S>
-</B>
-</Lesson>

@@ -288,8 +288,17 @@ function Start-PowerSwirlLesson
                 $SaveLessonParams = @{
                     CourseSid = $CourseSid
                 ;   LessonSid = $LessonSid
-                ;   StepNum = ($StepNumCurrent + 1)
+                ;   StepNum = ($StepNumCurrent + 1) # step numbers are 1 based, whereas the index to the array is 0 based
                 ;   UserSid = $UserSid 
+                }
+                
+                # if on step n, we need to pause and we don't need a solution, resume on step n+1
+                    # if the lesson has at least n+1 steps, this causes a resume on the n+1st step
+                    # if the lesson has n steps, then the resume will still work, but the step loop will immediately terminate and the lesson will be complete
+                # if however we need to pause and we DO need a solution, we must come back to the step we paused at so that the user can input the solution
+                if(-not $StepRequiresSolution)
+                {
+                    $SaveLessonParams["StepNum"] += 1
                 }
                 Save-Lesson @SaveLessonParams
                 Start-Sleep -Seconds 3

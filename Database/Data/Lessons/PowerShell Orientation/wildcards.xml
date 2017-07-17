@@ -1,0 +1,140 @@
+<Lesson>
+<H> 
+	<C> PowerShell Orientation </C>
+	<L> Pattern Matching and Replacement </L>
+</H>
+<B>
+	<S> 
+		<N> Main </N>
+		<T> 
+			<P> 
+				Many PowerShell commands allow you to search for and manipulate objects by name. You can specify names of files and directories using Get-ChildItem's Include parameter, processes by using Get-Process's Name parameter, and commands using Get-Command's name parameter, to name a few examples.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				If you don't know the names of the objects you want to deal with, you can specify special characters called wildcards as placeholders that turn your uniquely identifying name into a pattern to which any given object either matches or doesn't match. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				We will consider in this lesson the syntax and context of using wildcards in the commands that support them. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Our examples will center on searching the file system similarly to how we use the Windows Explorer GUI to search for files and directories. 
+			</P>
+		</T>
+		<T> 
+			<P>
+				Suppose you want to list all files in a directory that have file extension .txt. Since you don't know ahead of time what the names of the files are, you have to create a pattern which will match those files that have file extension .txt and not match those files that have other extensions. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				We can use Get-ChildItem as our search directory command with the pattern '*.txt' to get the files we need. The '*' within the pattern is a wildcard, which as its name suggests, can take the form of any file name. The entire pattern can be read as meaning any string, followed by a period, followed by the string 'txt'. It's easy to see that all .txt files and only .txt files will match this pattern. 
+
+				The command 'Get-ChildItem *.txt' can be used to accomplish our original task. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				I've created a number of empty files with different extensions in the PSwirlDrive:\ directory for you to play with. 
+
+				Type 'Get-ChildItem' now to see the files that are there.
+			</P>
+			<opt> pc </opt>
+			<code> 
+				<block> New-PSwirlDrive; 
+						Clear-PSwirlDrive;
+						Set-Location ((Get-PSwirlDriveName) + ":\");
+						(1..3) | % {ni "script$_.sql"} | out-null
+						(1..4) | % {ni "text$_.txt"} | out-null
+						(1..2) | % {ni "data$_.csv"} | out-null
+				</block>
+			</code>
+		</T>
+		<T> 
+			<P> 
+				Using a pattern similar to the one we used to find the .txt files before, use
+				Get-ChildItem to list all the files which have the type extension ".sql"
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> gci *.sql </expr>
+				<exec> 1 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				The '*' wildcard can be placed anywhere in the pattern string any number of times, or omitted altogther. When the '*' is not used, the pattern must be exact (while still being case insensitive by default)
+			</P>
+		</T>
+		<T> 
+			<P> 
+				For example, if you want to search for only for a file named 'error_log.txt', you could use the command 'Get-ChildItem error_log.txt'. On the other hand, if you wanted to find all .txt files which had the string 'log' in the name, you could use the command 'Get-ChildItem *log*.txt''.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Type a command you could use to find all files in the directory from before with at least one '2' character in the name. The files in the list can be of any type extension.
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> gci *2* </expr>
+				<exec> 1 </exec>
+			</soln>
+		</T>
+		<T>
+			<P> 
+				The * wildcard is probably the most common wildcard to use in day-to-day PowerShell work, but there are others available. One powerful one is the character set wildcard []. This wildcard is specified with '[', followed by one or more characters which specify what characters the wildcard can take, followed by a ']'. Unlike *, the character set wildcard is good for exactly 1 character in the match, and it must match at least one character, whereas * can match 0 characters as well as 1 or more.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				Returning to our example involving PSwirlDrive:\, you can use a character set wildcard to match all files that have a 2 or 4 in their filename by using the pattern "*[24]*" as so: 'Get-ChildItem *[24]*'. The [24] part of the pattern should be read as 2 OR 4. The filename need not contain 2 and then 4, which would be the case if we used pattern "*24*" instead. 
+			</P>
+		</T>
+		<T>
+			<P> 
+				Earlier you saw that I created a couple csv (comma separated value) files in the PSwirlDrive:\ directory. I've just added several tsv (tab separated value) and psv (pipe separated value) files in the same directory. Type 'Get-ChildItem' to see the list of all the files that are now in the directory.'
+			</P>
+			<opt> pc </opt>
+			<code> 
+				<block> 
+						Set-Location ((Get-PSwirlDriveName) + ":\") -ErrorAction Stop;
+						(1..5) | % {ni "sales$_.tsv"} | out-null; 
+					    (1..3) | % {ni "products$_.tsv"} | out-null; 
+				</block> 
+			</code>
+		</T>
+		<T> 
+			<P> 
+				Using a pattern involving the character set wildcard, write a Get-ChildItem command that returns all files that are separated by commas, tabs, or pipes (i.e. csv, tsv, and psv files).
+			</P>
+			<opt> ps </opt>
+			<soln> 
+				<expr> gci *.[ctp]sv* </expr>
+				<exec> 1 </exec>
+			</soln>
+		</T>
+		<T> 
+			<P> 
+				You can specify ranges of numbers or letters by using a '-' within the character set.
+				So for example, [2-5] represents the character set containing '2','3','4', and '5'. This can save you some typing.
+			</P>
+		</T>
+		<T> 
+			<P> 
+				If you want to get less specific but still match on only one character, you can use the '?' wildcard to match any one character. 
+			</P>
+		</T>
+		<T> 
+			<P> 
+				That's about all there is to know about basic wildcard usage. For the official documentation on wildcards, type 'help about_wildcards' into the PowerShell prompt.
+			</P>
+		</T>
+	</S>
+</B>
+</Lesson>

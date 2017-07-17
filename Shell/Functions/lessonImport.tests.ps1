@@ -210,12 +210,4 @@ InModuleScope PowerSwirl {
          }
     }
 
-    Describe ConvertFrom-LessonMarkup  {
-        It "step through" -Skip {
-            $lessonPath = "C:\Users\ROBVK\Documents\Workspace\Projects\PowerSwirl\Database\Data\Lessons\intro_powerswirl_test_lesson.xml"
-            $lessonString = Get-Content $lessonPath -raw
-            ConvertFrom-LessonMarkup -LessonString $lessonString 
-        }
-    }
-
 }

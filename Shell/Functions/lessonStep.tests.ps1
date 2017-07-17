@@ -242,11 +242,6 @@ InModuleScope PowerSwirl {
                 $Result | Select-Object -ExpandProperty StepCount | Should be $NumStepsExpected
             }
         }
-
-
-	    It "should..." {
-
-	    }
     }
 
     Describe "Get-LessonContent" {
@@ -425,13 +420,16 @@ InModuleScope PowerSwirl {
             $tc = @(
                 @{propertyName='stepNum'}
                 @{propertyName='stepPrompt'}
-                @{propertyName='requiresInput'}
-                @{propertyName='executeCode'}
-                @{propertyName='storeVar'}
-                @{propertyName='variable'}
-                @{propertyName='solution'}
+                @{propertyName='requiresPause'}
+                @{propertyName='requiresSolution'}
+                @{propertyName='requiresCodeExecution'}
+                @{propertyName='requiresSetVariable'}
+                @{propertyName='requiresSolutionExecution'}
+                @{propertyName='codeToExecute'}
+                @{propertyName='variableToSet'}
+                @{propertyName='solutionExpression'}
             )
-            It "should write objects that have a '<propertyName>' property" -TestCases $tc -skip{
+            It "should write objects that have a '<propertyName>' property" -TestCases $tc {
                 param 
                 (
                     [String] $propertyName
@@ -443,13 +441,15 @@ InModuleScope PowerSwirl {
             }
 
             $tc = @(
-                @{propertyName='stepNum'; expectedType='int'}
-                @{propertyName='stepPrompt'; expectedType='string'}
-                @{propertyName='requiresInput'; expectedType='bool'}
-                @{propertyName='executeCode'; expectedType='bool'}
-                @{propertyName='storeVar'; expectedType='bool'}
+                 @{propertyName='stepNum'; expectedType="int"},
+                @{propertyName='stepPrompt'; expectedType="string"},
+                @{propertyName='requiresPause'; expectedType="bool"},
+                @{propertyName='requiresSolution'; expectedType="bool"},
+                @{propertyName='requiresCodeExecution'; expectedType="bool"},
+                @{propertyName='requiresSetVariable'; expectedType="bool"},
+                @{propertyName='requiresSolutionExecution'; expectedType="bool"}
             )
-            It "should write <propertyName> as type <expectedType>" -TestCases $tc -Skip{
+            It "should write <propertyName> as type <expectedType>" -TestCases $tc {
                 param
                 (
                     [String] $propertyName
@@ -462,30 +462,36 @@ InModuleScope PowerSwirl {
 
             
             $tc = @(
-                @{propertyName='variable'; expectedType='string'}
-                @{propertyName='solution'; expectedType='string'}
+                @{propertyName='codeToExecute'; expectedType="string"},
+                @{propertyName='variableToSet'; expectedType="string"},
+                @{propertyName='solutionExpression'; expectedType="string"}
             )
-            It "should write <propertyName> as <expectedType> or `$null" -TestCases $tc -Skip {
+            It "should write <propertyName> as <expectedType> or `$null" -TestCases $tc {
                 param
                 (
                     [String] $propertyName
                 ,
                     [String] $expectedType
                 )
-                
-                Invoke-Expression "`$CourseContentB1 | 
-                                    Where-Object {`$_.$propertyName} | 
+
+                Invoke-Expression "`$notNull = `$CourseContentB1 | 
                                     Select-Object -ExpandProperty $propertyName | 
-                                    Should BeOfType [$expectedType]"
+                                    Where-Object {`$_} 
+
+                                    if(`$notNull)
+                                    {
+                                        `$notNull | Should BeOfType [$expectedType]
+                                    }
+                                    "
             }
 
             $answersCSV = 
 @'
-                        stepNum, stepPrompt, requiresInput, executeCode, storeVar, variable, solution
-                         1,"'B1 S1'",$false,$false,$false, $null, $null
-                         2,"'B1 S2'",$true,$false,$true, "'B_var2'", "'B_ans2'"
-                         3,"'B1 S3'",$false,$true,$true, "'B_var3'", "'B_ans3'"
-                         4,"'B1 S4'",$true,$false,$true, "'B_var4'", "'B_ans4'"
+                        stepNum, stepPrompt, requiresPause, requiresSolution, requiresCodeExecution, requiresSetVariable, requiresSolutionExecution, variableToSet, solutionExpression
+                         1,"'B1 S1'",$false,$false,$false,$false,$false, $null, $null
+                         2,"'B1 S2'",$false,$true,$false,$true,$false, "'B_var2'", "'B_ans2'"
+                         3,"'B1 S3'",$false,$false,$true,$true,$false, "'B_var3'", "'B_ans3'"
+                         4,"'B1 S4'",$false,$true,$false,$true,$false, "'B_var4'", "'B_ans4'"
 '@
             $tc = @()
 
@@ -506,7 +512,7 @@ InModuleScope PowerSwirl {
                 }
             }
 
-            It "should in step <stepNum> have <propertyName> value = <expectedValue>" -TestCases $tc -skip{
+            It "should in step <stepNum> have <propertyName> value = <expectedValue>" -TestCases $tc {
                 param
                 (
                     [Int] $stepNum
@@ -521,18 +527,6 @@ InModuleScope PowerSwirl {
                     Should be $expectedValue
             }
         }
-    }
-
-    Describe "Write-LessonPrompt" {
-	    It "should..." {
-
-	    }
-    }
-
-    Describe "Read-StepInput" {
-	    It "should..." {
-
-	    }
     }
 
     Describe "Test-StepInput" -Tag TestStepInput {
@@ -637,18 +631,6 @@ InModuleScope PowerSwirl {
             }
         }
 	    
-    }
-
-    Describe "Write-UserIncorrect" {
-	    It "should..." {
-
-	    }
-    }
-
-    Describe "Write-UserCorrect" {
-	    It "should..." {
-
-	    }
     }
 
 }
