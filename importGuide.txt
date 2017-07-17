@@ -1,0 +1,278 @@
+full syntax
+<Lesson> -- The top level object being imported
+    <Header> -- Course/lesson metadata
+        <Course> ... </Course> -- Course name
+        <Lesson> ... </Lesson> -- Lesson name
+    </Header>
+    <Body> -- Contains lesson sections
+        <Section> -- Contains lesson steps
+            <Step> -- Contains step data
+                <Prompt> ... </Prompt> -- The prompt output to user
+                <RequiresPauseLesson> 0 | 1 </RequiresPauseLesson> -- 1 to pause lesson, 0 otherwise
+                <RequiresCodeExecution> 0 | 1 </RequiresCodeExecution> -- 1 to execute code, 0 otherwise
+                <CodeToExecute> ... </CodeToExecute>  -- an expression to evaluate if RequiresCodeExecution = 1
+                <RequiresSetVariable> 0 | 1 </RequiresSetVariable> -- 1 to set variable, 0 otherwise
+                <Variable> ... </Variable> -- the name of the variable to set the value to if RequiresCodeExecution = 1 and SetVariable = 1
+                <RequiresSolution> 0 | 1 </RequiresSolution> -- 1 if solution required, 0 otherwise
+                <Solution> 
+                    <Expression> ... </Expression> -- The expression which is either literally the solution or code generating the solution
+                    <RequiresExecution> 0 | 1 </RequiresExecution> -- 1 to execute expression, 0 to use expression literally
+                </Solution>
+            </Step>
+        </Section>
+    </Body>
+</Lesson>
+
+Error scenarios:
+Top level object not Lesson
+Lesson is missing Header or Body
+Lesson contains entries which are not Header or Body
+Header is missing Course or Lesson
+Header contains entries which are not Course or Lesson
+Body has no Sections
+Body has elements which are not Sections
+Any section has no Steps
+Any section has elements which are not Steps
+Any step is missing one or more of the elements above
+Any step has RequireCodeExecution = 1 but no code to execute
+Any step has RequireSetVariable = 1 but RequireCodeExecution = 0
+Any step has RequireSetVariable = 1 but no variable name to set
+Any step has RequireSolution = 1 but no solution
+Any step has RequireSolution = 1 but no expression in solution
+
+
+abbreviated syntax
+<Lesson> -- ==> Lesson
+    <H> -- ==> Header
+        <C> ... </C> -- ==> Course
+        <L> ... </L> -- ==> Lesson
+    </H>
+    <B> -- ==> Body
+        <S> -- ==> Section
+            <T> -- ==> Step
+                <P> ... </P> 
+                <opt> ... </opt>
+                <soln>
+                    <exp> ... </exp>
+                    <exec> 0 | 1 </exec>
+                </soln>
+                <code> ... </code>
+                <var> ... </var>
+            </T>
+        </S>
+    </B>
+</Lesson>
+
+options 
+v -- ==> RequiresSetVarible = 1
+e -- ==> RequiresCodeExecution = 1
+p -- ==> RequiresPauseLesson = 1
+s -- ==> RequiresSolution = 1
+
+To specify Requires* = 0, omit the corresponding option
+
+What follows is a simple example of using the abbreviated syntax to create 
+a full syntax xml document of a lesson on PowerShell. 
+
+Abbreviated form:
+<Lesson>
+<H>
+    <C> PowerShell </C>
+    <L> Intro to PowerShell </L>
+</H>
+<B>
+    <S>
+        <N> What is PowerShell? </N>
+        <T> 
+            <P> PowerShell is a scripting language originated by Microsoft
+                which can be used in a variety of different scenarios by
+                anyone who knows how to use a computer.
+            </P>
+        </T>
+        <T>
+            <P> What company created PowerShell? </P>
+            <opt> s </opt>
+            <soln> Microsoft </soln>
+        </T>
+        <T>
+            <P> PowerShell can be used for programming full applications in .NET,
+                but it can also be used to perform the everyday computing tasks
+                you usually perform in the Windows GUI.
+            </P>
+        </T>
+        <T>
+            <P> For example, you can search for files on your hard drive
+                easily in PowerShell using the Get-ChildItem command.
+            </P>
+        </T>
+        <T>
+            <P> Using the command 'Get-ChildItem C:\Windows', examine
+                the contents of the Windows directory
+            </P>
+        </T>
+        <T>
+            <P> Referring to the results of executing this command, look
+                for an entry that starts with with the word "Policy". 
+                What is the full name of this entry?
+            </P>
+            <opt>s</opt>
+            <soln>PolicyDefinitions</soln> 
+        </T>
+        <T>
+            <P> As a more familiar example, let's look at the contents of
+                your documents. I've stored the directories of your documents 
+                in a variable 'dirdocuments' and the files of your documents in a 
+                variable 'filedocuments'. Type '$dirdocuments' to see the contents
+                of the first variable and '$filedocuments' to see the contents of
+                the second variable
+            </P>
+            <opt> cvp </opt>
+            <code> 
+                $userName = $env:USERNAME; 
+                $dirDocuments = Get-ChildItem "C:\Users\$userName\Documents" -Directory
+                $fileDocuments = Get-ChildItem "C:\Users\$userName\Documents" -File
+            </code>
+        </T>
+    </S>
+    <S>
+        <N> PowerShell Applications</N>
+        <T>
+            <P> In the previous section, we saw an example of using PowerShell 
+                for the kinds of things you usually do in the Windows GUI.
+                In this section, we'll consider some of the more advanced uses 
+                of PowerShell.
+            </P>
+        </T>
+        <T>
+            <P> PowerShell can be used to manage SQL Server, SharePoint, Hyper-V,
+                and many other applications
+            </P>
+        </T>
+    </S>
+</B>
+</Lesson>
+
+Full form:
+<Lesson>
+<Header>
+    <Course> PowerShell </Course>
+    <Lesson> Intro to PowerShell </Lesson>
+</Header>
+<Body>
+    <Section>
+        <Name> What is PowerShell? </Name>
+        <Step> 
+            <Prompt> 
+                PowerShell is a scripting language originated by Microsoft
+                which can be used in a variety of different scenarios by
+                anyone who knows how to use a computer.
+            </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>0</RequiresSolution> 
+            <Solution></Solution>
+        <Step>
+        <Step>
+            <Prompt> What company created PowerShell? </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>1</RequiresSolution> 
+            <Solution>
+                <Expression> Microsoft </Expression>
+                <RequiresExecution>0</RequiresExecution>
+            </Solution>
+        <Step>
+        <Step>
+            <Prompt> 
+                PowerShell can be used for programming full applications in .NET,
+                but it can also be used to perform the everyday computing tasks
+                you usually perform in the Windows GUI.
+            </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>0</RequiresSolution> 
+            <Solution></Solution>
+        <Step>
+        <Step>
+            <Prompt> For example, you can search for files on your hard drive
+                easily in PowerShell using the Get-ChildItem command.
+            </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>0</RequiresSolution> 
+            <Solution></Solution>
+        <Step>
+        <Step>
+            <Prompt> Using the command 'Get-ChildItem C:\Windows', examine
+                the contents of the Windows directory
+            </Prompt>
+        <Step>
+        <Step>
+            <Prompt> Referring to the results of executing this command, look
+                for an entry that starts with with the word "Policy". 
+                What is the full name of this entry?
+            </Prompt>
+            <opt>s</opt>
+            <soln>PolicyDefinitions</soln> 
+        <Step>
+        <Step>
+            <Prompt> As a more familiar example, let's look at the contents of
+                your documents. I've stored the directories of your documents 
+                in a variable 'dirdocuments' and the files of your documents in a 
+                variable 'filedocuments'. Type '$dirdocuments' to see the contents
+                of the first variable and '$filedocuments' to see the contents of
+                the second variable.
+            </Prompt>
+            <opt> cvp </opt>
+            <code> 
+                $userName = $env:USERNAME; 
+                $dirDocuments = Get-ChildItem "C:\Users\$userName\Documents" -Directory
+                $fileDocuments = Get-ChildItem "C:\Users\$userName\Documents" -File
+            </code>
+        <Step>
+    </Section>
+    <Section>
+        <Name> PowerShell Applications</Name>
+        <Step>
+            <Prompt> In the previous section, we saw an example of using PowerShell 
+                for the kinds of things you usually do in the Windows GUI.
+                In this section, we'll consider some of the more advanced uses 
+                of PowerShell.
+            </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>0</RequiresSolution> 
+            <Solution></Solution>
+        <Step>
+        <Step>
+            <Prompt> PowerShell can be used to manage SQL Server, SharePoint, Hyper-V,
+                and many other applications
+            </Prompt>
+            <RequiresPauseLesson>0</RequiresPauseLesson> 
+            <RequiresCodeExecution>0</RequiresCodeExecution> 
+            <CodeToExecute></CodeToExecute>  
+            <RequiresSetVariable>0</RequiresSetVariable> 
+            <Variable></Variable> 
+            <RequiresSolution>0</RequiresSolution> 
+            <Solution></Solution>
+        <Step>
+    </S>
+</Body>
+</Lesson>
+
+
