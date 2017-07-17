@@ -591,22 +591,12 @@ InModuleScope PowerSwirl {
 
         Context "Code solution" {
             It "should not throw when the answer and input are code strings that are exactly the same" {
-                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -First 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+                {Test-StepInput -UserInput "(1+1)" -Solution "(1+1)" -ExecuteCode} | 
                     Should not throw
             }
 
-            It "should not throw when the answer and input are code strings that have the same effect, but differ in use of aliases" {
-                {Test-StepInput -UserInput "gci | select -First 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
-                    Should not throw
-            }
-
-            It "should not throw when the answer and input are code strings that have the same effect, but differ in use of parameter abbreviations" {
-                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -fir 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
-                    Should not throw
-            }
-
-            It "should not throw when the answer and input are code strings that have the same effect, but are achieved in logically different ways" -Pending {
-                {Test-StepInput -UserInput "Get-ChildItem | Select-Object -fir 1" -Solution "Get-ChildItem | Select-Object -First 1" -ExecuteCode} | 
+            It "should not throw when the answer and input are code strings that have the same effect, but are achieved in logically different ways" {
+                {Test-StepInput -UserInput "0+1" -Solution "3-2" -ExecuteCode} | 
                     Should not throw
             }
 
@@ -617,16 +607,6 @@ InModuleScope PowerSwirl {
 
             It "should throw when the answer and input evaluate to strings which are not equal" {
                 {Test-StepInput -UserInput "'abc' + 'xyz'" -Solution "'xyz' + 'abc'" -ExecuteCode} | 
-                    Should throw $ErrorMessageDoesNotMatch
-            }
-          
-            It "should throw when the answer and input put different kinds of objects into the pipeline" {
-                {Test-StepInput -UserInput "gci | select -first 1" -Solution "gsv | select -first 1" -ExecuteCode} | 
-                    Should throw $ErrorMessageDoesNotMatch
-            }
-
-            It "should throw when the answer and input which put different numbers of objects into the pipeline" {
-                {Test-StepInput -UserInput "gci | select -first 1" -Solution "gci | select -first 2" -ExecuteCode} | 
                     Should throw $ErrorMessageDoesNotMatch
             }
         }
