@@ -1,5 +1,61 @@
-function Import-Lesson
+function Import-PowerSwirlLesson
 {
+    <#
+    .SYNOPSIS
+    Imports a PowerSwirl lesson into the database
+    
+    .DESCRIPTION
+    Generates and executes SQL code for inserting or revising a PowerSwirl lesson into the PowerSwirl database. 
+    
+    If a course with the specified course name does not already exist, this command creates a new course if and only if the CreateNewCourse parameter is specified.
+    
+    If a lesson with the specified course and lesson ID already exists, this command overwrites the contents of that lesson in the database if and only if
+    the OverWriteLesson parameter is specified. 
+    
+    .PARAMETER LessonXML
+    The lesson XML containing the course name, lesson name, and step data for a new lesson or a lesson to be revised.
+    Lesson XML can be read directly from a file or translated from lesson markup text using ConvertFrom-PowerSwirlLessonMarkup. Consult
+    the documentation for this module for more information on Lesson Markup.
+    
+    .PARAMETER OverWriteLesson
+    Indicates that the command should overwrite an existing lesson if it exists with the course and lesson IDs specified. 
+    
+    This command does NOT error if OverWriteLesson is specified and the course/lesson in LessonXML does not match an existing course/lesson. 
+    This parameter is used only to prevent unintentional overwrites of existing lessons, not to ensure that the lessons already exist.
+    
+    .PARAMETER CreateNewCourse
+    Indicates that the command should create a new course if it doesn't already exist. 
+
+    This command does NOT error if CreateNewCourse is specified and the course specified in LessonXML matches an existing course. 
+    This parameter is used only to prevent unintentional new course creation, not to ensure that courses do not already exist.
+
+    .EXAMPLE
+    Import-PowerSwirlLesson -LessonXML (Get-Content "C:\newLesson.xml" -Raw)
+    This command reads lesson XML from C:\newLesson.xml and imports it into the PowerSwirl database.
+    Since OverWriteLesson and CreateNewCourse were not used, this command will error out if a lesson already exists with the course and lesson IDs specified in C:\newLesson.xml. 
+
+    .EXAMPLE
+    Import-PowerSwirlLesson -LessonXML (Get-Content "C:\newLesson.xml" -Raw) -CreateNewCourse
+    This command reads lesson XML from C:\newLesson.xml and imports it into the PowerSwirl database.
+    Since CreateNewCourse was used, it will create a new course in the database if necessary. If not necessary, it will use an existing course. 
+    Since OverWriteLesson was not used, if a course and lesson already exist with the course and lesson IDs specified in C:\newLesson.xml, this command will 
+    raise an error. Note this happens even though CreateNewCourse was specified, since the command will not create a new course if it doesn't need to. 
+
+    .EXAMPLE 
+    Import-PowerSwirlLesson -LessonXML (Get-Content "C:\newLesson.xml" -Raw) -OverWriteLesson
+    This command reads lesson XML from C:\newLesson.xml and imports it into the PowerSwirl database.
+    Since CreateNewCourse was not used, it will raise an error if there isn't a course in the Database with course ID matching the one specified in C:\newLesson.xml 
+    Since OverWriteLesson was used, if the lesson already exists in the specified course, the lesson will be overwritten. 
+
+    .EXAMPLE 
+    Get-Content C:\newLessonMarkup.txt -Raw | ConvertFrom-PowerSwirlLessonMarkup | Import-PowerSwirlLesson
+    This command reads lesson markup from C:\newLessonMarkup.txt, then converts it into lesson XML, and then imports it. 
+    If you are not familiar with lesson markup, it is an XML format that offers an abbreviated syntax for generating lesson XML. 
+    Lesson markup must be translated to the full syntactic lesson XML format before it is imported. 
+    Read the documentation for this module for more information on the details of the format.
+
+
+    #>
     [CmdletBinding()]
     param
     (
@@ -10,79 +66,88 @@ function Import-Lesson
     ,
         [Switch] $CreateNewCourse
     )
-    $PowerSwirlConnection = Get-PowerSwirlConnection
-    $ServerInstance = $PowerSwirlConnection.ServerInstance 
-    $Database = $PowerSwirlConnection.Database 
-    
-    $ConnectionParams = @{
+
+    Begin 
+    {
+        $PowerSwirlConnection = Get-PowerSwirlConnection
+        $ServerInstance = $PowerSwirlConnection.ServerInstance 
+        $Database = $PowerSwirlConnection.Database     
+
+        $ConnectionParams = @{
                           ServerInstance=$ServerInstance;
                           Database=$Database;
-                         }
-
-    # Get course and lesson name
-    $Header = Get-ImportLessonHeader $LessonXML
-    $CourseName = $Header.CourseName
-    $LessonName = $Header.LessonName
-
-    # Check whether course and lesson already exist. 
-    $Course = Get-Course -CourseID $CourseName
-    $CourseExists = $Course.CourseExists 
-    # if a course with name CourseName exists
-    if($CourseExists)
+                             }
+    }
+    
+    Process 
     {
-        $CourseSid = $Course.CourseSid 
-        # check whether a lesson with name LessonName exists within that course
-        $Lesson = Get-Lesson -CourseSID $CourseSid -LessonID $LessonName 
-        $LessonExists = $Lesson.LessonExists
-        if($LessonExists)
+        # Get course and lesson name
+        $Header = Get-ImportLessonHeader $LessonXML
+        $CourseName = $Header.CourseName
+        $LessonName = $Header.LessonName
+
+        # Check whether course and lesson already exist. 
+        $Course = Get-Course -CourseID $CourseName
+        $CourseExists = $Course.CourseExists 
+        # if a course with name CourseName exists
+        if($CourseExists)
         {
-            # proceed only if the OverwriteLesson parameter is specified.
-            # this is intended to prevent unintentional overwrites 
-            if($OverwriteLesson)
+            $CourseSid = $Course.CourseSid 
+            # check whether a lesson with name LessonName exists within that course
+            $Lesson = Get-Lesson -CourseSID $CourseSid -LessonID $LessonName 
+            $LessonExists = $Lesson.LessonExists
+            if($LessonExists)
             {
-                $LessonSid = $Lesson.LessonSid
-                Clear-LessonSteps -CourseSid $CourseSid -LessonSid $LessonSid 
+                # proceed only if the OverwriteLesson parameter is specified.
+                # this is intended to prevent unintentional overwrites 
+                if($OverwriteLesson)
+                {
+                    $LessonSid = $Lesson.LessonSid
+                    Clear-LessonSteps -CourseSid $CourseSid -LessonSid $LessonSid 
+                }
+                # if OverwriteLesson is not specified, do not proceed
+                else
+                {
+                    throw "Course and lesson exist but OverwriteLesson was not used. Use this parameter to overwrite."
+                }
             }
-            # if OverwriteLesson is not specified, do not proceed
             else
             {
-                throw "Course and lesson exist but OverwriteLesson was not used. Use this parameter to overwrite."
+                $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
             }
         }
+        # if no such course exists
         else
         {
-            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
+            # only create a new course if CreateNewCourse is specified.
+            # this is intended to prevent accidentally creating a new course for example if the course name has typos
+            if($CreateNewCourse)
+            {
+                $CourseSid = Register-Course -CourseName $CourseName 
+                $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
+            }
+            # if CreateNewCourse is not specified, do not proceed
+            else
+            {
+                throw "Course does not exist and CreateNewCourse was not used. Use this parameter to create a new course."
+            }
         }
+        # At this point we have a CourseSid and LessonSid, whether these existed prior to this function
+        # or were created in its execution. We also have ensured that any preexisting steps in
+        # (CourseSid, LessonSid) have been cleared so we can proceed to inserting without
+        # fear of duplication.
+        
+        # Generate INSERT statement from LessonXML
+        $ImportSQL = $LessonXML | 
+                    ConvertTo-ImportSQL -CourseSid $CourseSid -LessonSid $LessonSid 
+
+        Write-Verbose "Executing the following SQL:`n $ImportSQL"
+
+        # Execute INSERT statement to insert lesson into database
+        Invoke-Sqlcmd2 -Query $ImportSQL @ConnectionParams
     }
-    # if no such course exists
-    else
-    {
-        # only create a new course if CreateNewCourse is specified.
-        # this is intended to prevent accidentally creating a new course for example if the course name has typos
-        if($CreateNewCourse)
-        {
-            $CourseSid = Register-Course -CourseName $CourseName 
-            $LessonSid = Register-Lesson -CourseSid $CourseSid -LessonName $LessonName 
-        }
-        # if CreateNewCourse is not specified, do not proceed
-        else
-        {
-            throw "Course does not exist and CreateNewCourse was not used. Use this parameter to create a new course."
-        }
-    }
-    # At this point we have a CourseSid and LessonSid, whether these existed prior to this function
-    # or were created in its execution. We also have ensured that any preexisting steps in
-    # (CourseSid, LessonSid) have been cleared so we can proceed to inserting without
-    # fear of duplication.
+
     
-    # Generate INSERT statement from LessonXML
-    $ImportSQL = $LessonXML | 
-                 ConvertTo-ImportSQL -CourseSid $CourseSid -LessonSid $LessonSid 
-
-    Write-Verbose "Executing the following SQL:`n $ImportSQL"
-
-    # Execute INSERT statement to insert lesson into database
-    Invoke-Sqlcmd2 -Query $ImportSQL @ConnectionParams
 
         
 }
@@ -618,8 +683,26 @@ function Test-HasOnlyElementsInList
     }
 }
 
-function ConvertFrom-LessonMarkup
+function ConvertFrom-PowerSwirlLessonMarkup
 {
+    <#
+    .SYNOPSIS
+    Converts a lesson markup string to lesson XML
+    
+    .DESCRIPTION
+    Given a lesson markup string, generate and write the lesson XML required for Import-PowerSwirlLesson.
+    Lesson markup is an abbreviated form of lesson XML which can be used to speed up the lesson development process
+    and generating fully fleshed out lesson XML at import time. See the documentation for this module for more information
+    about lesson markup.
+    
+    .PARAMETER LessonString
+    The lesson markup to be converted to lesson XML
+    
+    .EXAMPLE
+    Get-Content "C:\lessonMarkup.txt" | ConvertFrom-PowerSwirlLessonMarkup | Import-PowerSwirlLesson 
+    This command reads the lesson markup from a file, then converts it from lesson markup to lesson XML, and then imports the lesson into the database. 
+
+    #>
     [CmdletBinding()]
     param
     (
@@ -628,131 +711,135 @@ function ConvertFrom-LessonMarkup
         $LessonString
     )
 
-    Write-Verbose "Converting LessonString to pre-processed XML"
-    $LessonXML = [xml] $LessonString
-    
-    Write-Verbose "Getting lesson object"
-    $Lesson = Get-XMLElement $LessonXML "Lesson"
-
-    Write-Verbose "Getting header of lesson"
-    $Header = Get-XMLElement $Lesson "H"
-
-    Write-Verbose "Getting body of lesson"
-    $Body = Get-XMLElement $Lesson "B"
-
-    Write-Verbose "Getting course name of header"
-    $CourseName = Get-XMLElement $Header "C"
-
-    Write-Verbose "Getting lesson of header"
-    $LessonName = Get-XMLElement $Header "L"
-
-    Write-Verbose "Getting sections of body" 
-    $Sections = [Object[]] (Get-XMLElement $Body "S")
-
-    Write-Verbose "Mapping a unique identity to each section name" 
-    $SectionIDToName =  @{}
-    for($i = 0; $i -lt $Sections.Length; $i++) 
+    Process 
     {
-        $SectionIDToName[$i] = (Get-XMLElement $Sections[$i] "N")
-    }
-
-    Write-Verbose "Mapping section id to step list"
-    $SectionIDToSteps =  @{}
-    $SectionIDToName.Keys | 
-        ForEach-Object {$SectionIDToSteps[$_] = (Get-XMLElement $Sections[$_] "T")}
-
-    Write-Verbose "Extracting step detail and assigning step numbers"
-    $SectionIDToStepDetail =  @{}
-    $SectionIDToName.Keys |
-    ForEach-Object {
-        $Steps = $SectionIDToSteps[$_]; 
-        $SectionStepDetails = @();
-        for($i = 0; $i -lt $Steps.Length; $i++)
-        {
-            $StepID = $i 
-            $Step = $Steps[$i] 
-            # Remove empty lines and tabs from the prompt
-            $Prompt = [regex]::Replace((Get-XMLElement $Step "P"), "\n\n|\t", "")
-            $RequiresCodeExecution = $false 
-            $RequiresPause = $false 
-            $RequiresSolution = $false 
-            $RequiresSolutionExecution = $false
-            $RequiresSetVariable = $false 
-            $CodeToExecute = $null 
-            $VariableToSet = $null 
-            $SolutionExpression = $null 
-            
-            if("opt" -in ($Step | Get-Member -MemberType Property | Select-Object -ExpandProperty Name))
-            {
-                $opt = Get-XMLElement $Step "opt"
-                if($opt.contains("c"))
-                {
-                    $RequiresCodeExecution = $true 
-                    $Code = Get-XMLElement $Step "code"
-                    $CodeToExecute = Get-XMLElement $Code "block"
-
-                    try {
-                        $VariableToSet = Get-XMLElement $Code "var"
-                        $RequiresSetVariable = $true 
-                    }
-                    catch {
-                        $VariableToSet = $null 
-                        $RequiresSetVariable = $false 
-                    }
-                }   
-                if($opt.contains("s"))
-                {
-                    $RequiresSolution = $true 
-                    $Solution = Get-XMLElement $Step "soln"
-                    $SolutionExpression = Get-XMLElement $Solution "expr"
-                    $RequiresSolutionExecution = [bool] [int] (Get-XMLElement $Solution "exec")
-                }
-                if($opt.contains("p"))
-                {
-                    $RequiresPause = $true 
-                }
-            }
-            $stepDetails = @{
-                StepID = $StepID;
-                Prompt = $Prompt;
-                RequiresSetVariable = $RequiresSetVariable;
-                VariableToSet = $VariableToSet;
-                RequiresCodeExecution = $RequiresCodeExecution;
-                CodeToExecute = $CodeToExecute;
-                RequiresPause = $RequiresPause;
-                RequiresSolution = $RequiresSolution;
-                SolutionExpression = $SolutionExpression;
-                RequiresExecuteSolution = $RequiresSolutionExecution;
-            }
-            $SectionStepDetails += New-Object -TypeName PSObject -Property $stepDetails
-        };
-        $SectionIDToStepDetail[$_] = $SectionStepDetails
-    }
+        Write-Verbose "Converting LessonString to pre-processed XML"
+        $LessonXML = [xml] $LessonString
         
-    Write-Verbose "Generating XML for each section"
-    $SectionIDToXML =  @{}
-    foreach($SectionID in $SectionIDToName.Keys)
-    {
-        $SectionName = $SectionIDToName[$SectionID] 
-        $SectionStepDetails = $SectionIDToStepDetail[$SectionID] 
-        $StepsXML = $SectionStepDetails | 
-                    New-ImportLessonStep
-        $SectionXML = New-ImportLessonSection -Title $SectionName -StepBlocks $StepsXML 
-        $SectionIDToXML[$SectionID] = $SectionXML 
+        Write-Verbose "Getting lesson object"
+        $Lesson = Get-XMLElement $LessonXML "Lesson"
+
+        Write-Verbose "Getting header of lesson"
+        $Header = Get-XMLElement $Lesson "H"
+
+        Write-Verbose "Getting body of lesson"
+        $Body = Get-XMLElement $Lesson "B"
+
+        Write-Verbose "Getting course name of header"
+        $CourseName = Get-XMLElement $Header "C"
+
+        Write-Verbose "Getting lesson of header"
+        $LessonName = Get-XMLElement $Header "L"
+
+        Write-Verbose "Getting sections of body" 
+        $Sections = [Object[]] (Get-XMLElement $Body "S")
+
+        Write-Verbose "Mapping a unique identity to each section name" 
+        $SectionIDToName =  @{}
+        for($i = 0; $i -lt $Sections.Length; $i++) 
+        {
+            $SectionIDToName[$i] = (Get-XMLElement $Sections[$i] "N")
+        }
+
+        Write-Verbose "Mapping section id to step list"
+        $SectionIDToSteps =  @{}
+        $SectionIDToName.Keys | 
+            ForEach-Object {$SectionIDToSteps[$_] = (Get-XMLElement $Sections[$_] "T")}
+
+        Write-Verbose "Extracting step detail and assigning step numbers"
+        $SectionIDToStepDetail =  @{}
+        $SectionIDToName.Keys |
+        ForEach-Object {
+            $Steps = $SectionIDToSteps[$_]; 
+            $SectionStepDetails = @();
+            for($i = 0; $i -lt $Steps.Length; $i++)
+            {
+                $StepID = $i 
+                $Step = $Steps[$i] 
+                # Remove empty lines and tabs from the prompt
+                $Prompt = [regex]::Replace((Get-XMLElement $Step "P"), "\n\n|\t", "")
+                $RequiresCodeExecution = $false 
+                $RequiresPause = $false 
+                $RequiresSolution = $false 
+                $RequiresSolutionExecution = $false
+                $RequiresSetVariable = $false 
+                $CodeToExecute = $null 
+                $VariableToSet = $null 
+                $SolutionExpression = $null 
+                
+                if("opt" -in ($Step | Get-Member -MemberType Property | Select-Object -ExpandProperty Name))
+                {
+                    $opt = Get-XMLElement $Step "opt"
+                    if($opt.contains("c"))
+                    {
+                        $RequiresCodeExecution = $true 
+                        $Code = Get-XMLElement $Step "code"
+                        $CodeToExecute = Get-XMLElement $Code "block"
+
+                        try {
+                            $VariableToSet = Get-XMLElement $Code "var"
+                            $RequiresSetVariable = $true 
+                        }
+                        catch {
+                            $VariableToSet = $null 
+                            $RequiresSetVariable = $false 
+                        }
+                    }   
+                    if($opt.contains("s"))
+                    {
+                        $RequiresSolution = $true 
+                        $Solution = Get-XMLElement $Step "soln"
+                        $SolutionExpression = Get-XMLElement $Solution "expr"
+                        $RequiresSolutionExecution = [bool] [int] (Get-XMLElement $Solution "exec")
+                    }
+                    if($opt.contains("p"))
+                    {
+                        $RequiresPause = $true 
+                    }
+                }
+                $stepDetails = @{
+                    StepID = $StepID;
+                    Prompt = $Prompt;
+                    RequiresSetVariable = $RequiresSetVariable;
+                    VariableToSet = $VariableToSet;
+                    RequiresCodeExecution = $RequiresCodeExecution;
+                    CodeToExecute = $CodeToExecute;
+                    RequiresPause = $RequiresPause;
+                    RequiresSolution = $RequiresSolution;
+                    SolutionExpression = $SolutionExpression;
+                    RequiresExecuteSolution = $RequiresSolutionExecution;
+                }
+                $SectionStepDetails += New-Object -TypeName PSObject -Property $stepDetails
+            };
+            $SectionIDToStepDetail[$_] = $SectionStepDetails
+        }
+            
+        Write-Verbose "Generating XML for each section"
+        $SectionIDToXML =  @{}
+        foreach($SectionID in $SectionIDToName.Keys)
+        {
+            $SectionName = $SectionIDToName[$SectionID] 
+            $SectionStepDetails = $SectionIDToStepDetail[$SectionID] 
+            $StepsXML = $SectionStepDetails | 
+                        New-ImportLessonStep
+            $SectionXML = New-ImportLessonSection -Title $SectionName -StepBlocks $StepsXML 
+            $SectionIDToXML[$SectionID] = $SectionXML 
+        }
+        
+        Write-Verbose "Generating XML for entire body of lesson"
+        $SectionBlocks = [string[]]@()
+        for($sectionIdx = 0; $sectionIdx -lt $Sections.Length; $sectionIdx++)
+        {
+            $SectionBlocks += $SectionIDToXML[$sectionIdx]
+        }
+        $BodyXML = New-ImportLessonBody -SectionBlocks $SectionBlocks 
+
+        Write-Verbose "Generating XML for entire lesson"
+        $LessonBlock = New-ImportLesson -CourseName $CourseName -LessonName $LessonName -BodyBlock $BodyXML 
+
+        Write-Output ($LessonBlock -join "`n")
     }
     
-    Write-Verbose "Generating XML for entire body of lesson"
-    $SectionBlocks = [string[]]@()
-    for($sectionIdx = 0; $sectionIdx -lt $Sections.Length; $sectionIdx++)
-    {
-        $SectionBlocks += $SectionIDToXML[$sectionIdx]
-    }
-    $BodyXML = New-ImportLessonBody -SectionBlocks $SectionBlocks 
-
-    Write-Verbose "Generating XML for entire lesson"
-    $LessonBlock = New-ImportLesson -CourseName $CourseName -LessonName $LessonName -BodyBlock $BodyXML 
-
-    Write-Output ($LessonBlock -join "`n")
 }
 
 function ConvertTo-ImportSQL

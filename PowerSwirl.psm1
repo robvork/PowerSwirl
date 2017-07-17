@@ -7,6 +7,38 @@ and concepts.
 
 function Start-PowerSwirl
 {
+    <#
+    .SYNOPSIS
+    Open the PowerSwirl main menu to choose a course and lesson
+    
+    .DESCRIPTION
+    The entrypoint for using PowerSwirl. Executing this command does the following in the order listed:
+    Prompt for a user name. If the user name is not recognized, ask if the user should be created. Proceeds when either a valid user has been entered or created.
+    List the available courses and prompt for a selection. Proceeds when a valid selection is made. 
+    List the available lessons for the selected course. Proceeds when a valid selection is made. 
+    Once the user, course, and lesson have been determined as described above, calls Start-PowerSwirlLesson to begin the chosen course and lesson for the user. 
+    
+    .PARAMETER User
+    An optional user profile. Bypasses the interactive user login process if it's a valid user. If it's not valid, the command will ask whether to create a new user 
+    with this name. If not, a new user login process begins. 
+    
+    .PARAMETER CourseID
+    An optional CourseID selection. Bypasses the interactive course selection process if it is a valid CourseID. 
+    
+    .PARAMETER LessonID
+    An optional lessonID selection. Bypasses the interactive lesson selection if it is a valid LessonID for the selected CourseID. 
+    
+    .EXAMPLE
+    Start-PowerSwirl
+    This command starts PowerSwirl so that the user login, course selection, and lesson selection process is all done interactively in the console.
+
+    .EXAMPLE
+    Start-PowerSwirl -User "rob" -CourseID "PowerShell Orientation" -LessonID "Using the Help System"
+    This command starts PowerSwirl with the user "rob", CourseID "PowerShell Orientation", and LessonID "using the Help System". If all of these inputs are valid, the command immediately begins the chosen lesson for the user.
+    
+    .NOTES
+    This command must be executed in a console-based host. 
+    #>
     [CmdletBinding()]
     param
     (
@@ -18,9 +50,6 @@ function Start-PowerSwirl
 
     ,   [String]
         $LessonID
-
-    ,   [Int]
-        $Step
     )
     $PowerSwirlConnection = Get-PowerSwirlConnection
     $ServerInstance = $PowerSwirlConnection.ServerInstance 
@@ -220,6 +249,36 @@ function Start-PowerSwirl
 
 function Start-PowerSwirlLesson
 {
+    <#
+    .SYNOPSIS
+    Enters the PowerSwirl lesson mode
+    
+    .DESCRIPTION
+    Starts or resumes a given PowerSwirl course and lesson for a given user at a specified step. Called by Start-PowerSwirl once user, course, and lesson IDs are translated into database SIDs. Can be called from elsewhere once this translation is complete. 
+    
+    .PARAMETER CourseSid
+    The course SID of the lesson to start
+    
+    .PARAMETER LessonSid
+    The lesson SID of the lesson to start
+    
+    .PARAMETER UserSid
+    The user SID of the user taking the lesson.
+    
+    .PARAMETER StepNumStart
+    The optional step at which to start the lesson. Defaults to the first step of the lesson. 
+    
+    .PARAMETER DisableForcePause
+    Disables the pause mechanism for the first step requiring pause. Enabled when encountering a step for the second time to disable repeated pausing. 
+    
+    .EXAMPLE
+    Start-PowerSwirlLesson -UserSid 3 -CourseSid 1 -LessonSid 2
+    This command starts the lesson with course SID 1, lesson SID 2, for the user with SID 3
+
+    .EXAMPLE 
+    Start-PowerSwirlLesson -UserSid 2 -CourseSid 2 -LessonSid 3 -StepNum 5
+    This command starts the lesson with course SID 2, lesson SID 3, for the user with SID 2 on the 5th step.
+    #>
     [CmdletBinding()]
     param
     (
@@ -350,6 +409,62 @@ function Start-PowerSwirlLesson
 
 function Install-PowerSwirl
 {
+    <#
+    .SYNOPSIS
+    Installs the PowerSwirl database objects and sets the module database connection parameters
+    
+    .DESCRIPTION
+    Begins by storing the ServerInstance and Database that will support PowerSwirl in a configuration file. 
+    
+    Then installs the database, data types, tables, constraints, functions, procedures, views, and triggers of PowerSwirl on the specified ServerInstance and Database. 
+    
+    If the database already exists, this command will drop and recreate the database if and only if the Force parameter is used. If the database exists and the Force parameter is not used, this command raises an error and halts. 
+
+    Each of the paths to be specified is optional, but for normal installation, it is highly recommended to specify all relevant paths.
+    
+    Paths may be ommitted for development purposes.
+    
+    .PARAMETER ServerInstance
+    The ServerInstance that will be hosting PowerSwirl
+    
+    .PARAMETER Database
+    The Database that will be hosting PowerSwirl on ServerInstance
+    
+    .PARAMETER Force
+    If enabled, drops and recreates the database if it already exists. If the database exists and this parameter is not enabled, the command raises a terminating error. 
+    
+    .PARAMETER DataTypesPath
+    The path to the data type create SQL scripts. The 1st type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER TablesPath
+    The path to the table create SQL scripts. The 2nd type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER ConstraintsPath
+    The path to the constraint create SQL scripts. The 3rd type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER FunctionsPath
+    The path to the function create SQL scripts. The 4th type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER ProceduresPath
+    The path to the procedure create SQL scripts. The 5th type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER ViewsPath
+    The path to the view create SQL scripts. The 6th type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .PARAMETER TriggersPath
+    The path to the trigger create SQL scripts. The 7th type of object to be created. 
+    If omitted, the command will attempt the installation process skipping this step.
+    
+    .EXAMPLE
+    Install-PowerSwirl -ServerInstance "RVKSQL16" -Database "PowerSwirl" -DataTypesPath "C:\PowerSwirl\DataTypes" -TablesPath "C:\PowerSwirl\Tables" -ConstraintsPath "C:\PowerSwirl\Constraints" -FunctionsPath "C:\PowerSwirl\Functions" -ProceduresPath "C:\PowerSwirl\Procedures" -ViewsPath "C:\PowerSwirl\Views" -TriggersPath "C:\PowerSwirl\Triggers"
+    This command installs the PowerSwirl database on SQL ServerInstance "RVKSQL16", database "PowerSwirl", with each of the paths specified as subdirectories of C:\PowerSwirl. Since the Force parameter was not used, the command will halt with a terminating error if "PowerSwirl" already exists on RVKSQL16.
+    #>
     [CmdletBinding()]
     param
     (
@@ -373,45 +488,6 @@ function Install-PowerSwirl
     ,
         [String] $TriggersPath
     )
-
-    <# 
-     **** Outline ****
-     Is $ServerInstance valid?
-     => Yes 
-        Proceed
-     => No
-        Halt
-
-     Does $Database already exist on $ServerInstance?
-     => Yes
-         Was force specified? 
-         => Yes
-                 Kill connections and drop database
-         => No 
-                 Raise error
-     => No 
-         Proceed with the installation process
-
-     # For each (ObjectType, Path), is the path empty?
-        # => Yes 
-            # Continue to the next pair
-        # => No
-            # Is the Path valid?
-            # => Yes
-                # Run all *.sql scripts at that path (no recursion) against $ServerInstance, $Database
-
-     *Object creation order*
-     Create database
-     Create data types
-     Create tables
-     Create constraints
-     Create triggers
-     Create functions
-     Create procedures 
-     Create views
-
-     
-    #>
 
     try 
     {
@@ -570,6 +646,27 @@ function Install-PowerSwirl
 
 function Set-PowerSwirlConnection
 {
+    <#
+    .SYNOPSIS
+    Sets the database connection parameters for PowerSwirl
+    
+    .DESCRIPTION
+    Sets the SQL Server Instance name and Database name to be used by all PowerSwirl functions. Stores this information in a configuration xml file 'config.xml' 
+    located in the PowerSwirl module root directory. If the file already contains a ServerInstance and Database setting, this command overwrites it with the specified values. 
+    At any given time, PowerSwirl must have exactly 1 configuration setting stored. Multiple databases can be supported, but the connection settings must be handled accordingly. 
+    
+    .PARAMETER ServerInstance
+    The SQL Server Instance hosting the PowerSwirl database
+    
+    .PARAMETER Database
+    The database name of the PowerSwirl database on ServerInstance
+    
+    .EXAMPLE
+    Set-PowerSwirlConnection -ServerInstance "RVKSQL16" -Database "PowerSwirl"
+    This command sets the database connection settings to ServerInstance="RVKSQL16" and Database "PowerSwirl". 
+    All PowerSwirl functions subsequently use these settings in operation.
+    
+    #>
     param
     (
         [String] $ServerInstance
@@ -606,6 +703,19 @@ function Set-PowerSwirlConnection
 
 function Get-PowerSwirlConnection
 {
+    <#
+    .SYNOPSIS
+    Gets the PowerSwirl database connection settings
+    
+    .DESCRIPTION
+    Reads the PowerSwirl ServerInstance and Database from config.xml in the PowerSwirl root directory. config.xml can be created and edited
+    by using Set-PowerSwirlConnection (recommended) or manually. 
+    
+    .EXAMPLE
+    Get-PowerSwirlConnection | Select-Object ServerInstance, Database
+    This command fetches the connection information and displays these properties using Select-Object.
+    #>
+
     $powerswirlPath = Get-Module -Name "PowerSwirl" | 
                       Select-Object -ExpandProperty Path | 
                       Split-Path -Parent 
@@ -633,16 +743,3 @@ Set-Alias -Name "psw" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswirl" -Value "Start-PowerSwirl"
 Set-Alias -Name "pswl" -Value "Start-PowerSwirlLesson"
 Set-Alias -Name "impswl" -Value "Import-PowerSwirlLesson"
-
-<#
-Export-ModuleMember -Function Start-PowerSwirl -Alias pswirl, psw 
-Export-ModuleMember -Function Start-PowerSwirlLesson -Alias pswl
-Export-ModuleMember -Function Resume-Lesson -Alias nxt
-#>
-
-<#
-Export-ModuleMember -Function Start-PowerSwirl -Alias "psw","pswirl"
-Export-ModuleMember -Function Start-PowerSwirlLesson -Alias "pswl"
-Export-ModuleMember -Function nxt
-Export-ModuleMember -Function Import-PowerSwirlLesson -Alias "impswl"
-#>
